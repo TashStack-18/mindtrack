@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MindTrack | Explainable, Privacy-First Mood Intelligence{% endblock %}</title>
+    
+    <!-- Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="{{ url_for('dashboard.index') }}" class="brand-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                MindTrack
+            </a>
+            <nav class="nav-links">
+                {% if g.user %}
+                    <a href="{{ url_for('dashboard.dashboard_view') }}" class="nav-link">Dashboard</a>
+                    <a href="#" class="nav-link">Insights</a>
+                    <a href="#" class="nav-link">Reflections</a>
+                    <div style="width: 1px; height: 24px; background-color: var(--border-color); margin: 0 0.5rem;"></div>
+                    <span class="nav-link" style="color: var(--primary); font-weight: 600;">{{ g.user.name }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-link">Log Out</a>
+                {% else %}
+                    <a href="#how-it-works" class="nav-link">How It Works</a>
+                    <a href="{{ url_for('auth.login') }}" class="nav-link">Log In</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Start Journaling</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <span class="brand-logo">MindTrack</span>
+                <p class="footer-tagline">Understand your patterns. Reflect with intention.</p>
+            </div>
+            <div class="footer-links">
+                <a href="/privacy">Privacy Vault</a>
+                <a href="/terms">Terms</a>
+            </div>
+        </div>
+        <div class="container footer-copyright">
+            <p>&copy; 2026 MindTrack. A privacy-first self-reflection tool.</p>
+        </div>
+    </footer>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

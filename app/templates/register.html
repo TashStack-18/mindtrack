@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; margin-top: 4rem; margin-bottom: 4rem;">
+    <div class="feature-card">
+        <h2 class="text-center mb-4">Create Your Private Account</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('auth.register') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--primary);">First Name</label>
+                <input type="text" id="name" name="name" required 
+                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--primary);">Email Address</label>
+                <input type="email" id="email" name="email" required 
+                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <label for="password" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--primary);">Password</label>
+                <input type="password" id="password" name="password" required minlength="8"
+                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
+                <small class="text-muted" style="display: block; margin-top: 0.5rem;">Must be at least 8 characters long.</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem; font-size: 1rem;">Create Account</button>
+        </form>
+        
+        <p class="text-center text-muted" style="margin-top: 1.5rem;">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Log in here</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}

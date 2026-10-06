@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="hero">
+    <div class="container hero-inner">
+        <div class="hero-content">
+            <div class="hero-badge">Private by design</div>
+            <h1 class="hero-title">Understand your patterns.<br><span class="text-accent">Reflect with intention.</span></h1>
+            <p class="hero-subtitle">A private space to journal, understand your mood patterns, and reflect on what matters. Your data, fully encrypted and under your control.</p>
+            <div class="hero-actions">
+                <a href="/register" class="btn btn-primary btn-lg">Start Journaling</a>
+                <a href="#how-it-works" class="btn btn-secondary btn-lg">How It Works</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="how-it-works" class="features-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>More than just a mood tracker</h2>
+            <p>Go beyond simple tracking with explainable insights and guided CBT-inspired reflections.</p>
+        </div>
+        
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="feature-card">
+                <div class="feature-icon bg-accent-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+                <h3>Private by design</h3>
+                <p>Your journal entries are encrypted before storage. Your reflections remain yours, securely locked in your personal vault.</p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="feature-card">
+                <div class="feature-icon bg-positive-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                </div>
+                <h3>Understand your patterns</h3>
+                <p>Discover how your contexts—like sleep, academics, or social life—correlate with your mood through explainable insights.</p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="feature-card">
+                <div class="feature-icon bg-primary-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                </div>
+                <h3>Reflect with intention</h3>
+                <p>Receive adaptive, CBT-inspired reflection prompts based on your recent entries to help reframe your thoughts.</p>
+            </div>
+            
+            <!-- Feature 4 -->
+            <div class="feature-card">
+                <div class="feature-icon bg-attention-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--attention)" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </div>
+                <h3>Your data, your choice</h3>
+                <p>Export your data anytime, generate a counselor-friendly PDF report, or delete your entire history with one click.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="container text-center">
+        <h2>Ready to build healthier patterns?</h2>
+        <p class="mb-4 text-muted">Join MindTrack today. It's completely free and strictly private.</p>
+        <a href="/register" class="btn btn-primary btn-lg">Create Free Account</a>
+    </div>
+</section>
+{% endblock %}

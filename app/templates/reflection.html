@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Reflection - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('journal.detail', id=entry.id) }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-weight: 500;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Journal
+        </a>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="feature-card" style="padding: 2.5rem; margin-bottom: 2rem;">
+        <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+            <h1 style="margin-bottom: 0.5rem; font-size: 1.4rem; color: var(--text-muted);">{{ entry.title }}</h1>
+            <div style="display: inline-block; background-color: var(--positive-light); color: var(--positive); padding: 0.2rem 0.8rem; border-radius: 12px; font-weight: 600; font-size: 0.85rem;">
+                Mood: {{ entry.mood_score }}
+            </div>
+        </div>
+        
+        <h2 style="font-size: 1.1rem; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">A Moment to Reflect</h2>
+        
+        <p style="font-size: 1.4rem; line-height: 1.5; color: var(--text-main); font-weight: 500; margin-bottom: 2rem;">
+            "{{ prompt }}"
+        </p>
+
+        <form method="post" action="{{ url_for('journal.reflect', id=entry.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div style="margin-bottom: 1.5rem;">
+                <textarea name="response_text" rows="6" placeholder="Write your reflection... (optional)"
+                          style="width: 100%; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1.05rem; resize: vertical; line-height: 1.6; background-color: var(--surface-color);">{{ reflection.response_encrypted if reflection and reflection.response_encrypted else '' }}</textarea>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary btn-lg">Save Reflection</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

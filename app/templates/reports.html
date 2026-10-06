@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Counselor Report - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
+    <h1 style="margin-bottom: 0.5rem; font-size: 2.2rem;">REPORTS</h1>
+    <p class="text-muted" style="margin-bottom: 2rem;">Generate a summary to optionally share with a trusted person.</p>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="feature-card" style="padding: 2.5rem; margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 1.5rem; font-size: 1.4rem;">Generate New Report</h2>
+        
+        <form method="post" action="{{ url_for('reports.generate') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label for="range" style="font-weight: 500; display: block; margin-bottom: 0.5rem;">Date Range</label>
+                <select id="range" name="range" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background-color: var(--surface-color); font-size: 1rem;">
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="all">All time</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 2rem; padding: 1.5rem; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <label style="display: flex; align-items: flex-start; gap: 1rem; cursor: pointer;">
+                    <input type="checkbox" name="include_text" style="margin-top: 0.3rem; transform: scale(1.2);">
+                    <div>
+                        <span style="font-weight: 600; display: block; margin-bottom: 0.3rem;">Include personal journal and reflection text</span>
+                        <span style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">Your report is generated from your MindTrack data. Personal journal and reflection text is excluded by default unless you explicitly check this box to include it.</span>
+                    </div>
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-lg">Generate PDF Report</button>
+        </form>
+    </div>
+
+    <div class="feature-card" style="padding: 2.5rem;">
+        <h2 style="margin-bottom: 1.5rem; font-size: 1.4rem;">Report History</h2>
+        
+        {% if past_reports %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for r in past_reports %}
+                <div style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.3rem;">{{ r.created_at.strftime('%d %b %Y') }}</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem;">
+                            Personal text: <span style="font-weight: 500; color: {% if r.includes_journal_text %}var(--destructive){% else %}var(--text-main){% endif %};">{% if r.includes_journal_text %}Included{% else %}Not included{% endif %}</span>
+                        </div>
+                    </div>
+                    {% if r.start_date and r.end_date %}
+                        <div style="color: var(--text-muted); font-size: 0.9rem; background-color: var(--bg-color); padding: 0.4rem 0.8rem; border-radius: 20px;">
+                            {{ r.start_date.strftime('%d %b') }} - {{ r.end_date.strftime('%d %b') }}
+                        </div>
+                    {% else %}
+                        <div style="color: var(--text-muted); font-size: 0.9rem; background-color: var(--bg-color); padding: 0.4rem 0.8rem; border-radius: 20px;">
+                            All time
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">You haven't generated any reports yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

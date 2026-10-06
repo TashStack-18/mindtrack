@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if entry %}Edit Journal{% else %}Write Journal{% endif %} - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
+    <h1 style="margin-bottom: 2rem;">{% if entry %}Edit Journal Entry{% else %}How are you feeling today?{% endif %}</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('journal.edit', id=entry.id) if entry else url_for('journal.create') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <div class="feature-card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Mood Score</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                {% for score, label in mood_labels.items() %}
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="radio" name="mood" value="{{ score }}" required {% if entry and entry.mood_score == score %}checked{% endif %} style="transform: scale(1.2);">
+                    <span style="font-weight: 500;">{{ score }} &mdash; {{ label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="feature-card" style="margin-bottom: 2rem;">
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.5rem;"><label for="title">Title (optional)</label></h3>
+                <input type="text" id="title" name="title" value="{{ entry.title if entry else '' }}" placeholder="Give your entry a title..." 
+                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
+            </div>
+
+            <div>
+                <h3 style="margin-bottom: 0.5rem;"><label for="content">What happened today?</label></h3>
+                <textarea id="content" name="content" required rows="10" placeholder="Start writing here..."
+                          style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem; resize: vertical;">{{ entry.encrypted_content if entry else '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="feature-card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Context Tags</h3>
+            <p class="text-muted" style="margin-bottom: 1rem;">Select tags to help MindTrack understand your patterns.</p>
+            
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                {% set predefined_tags = ['Academics', 'Sleep', 'Friends', 'Family', 'Work', 'Exercise', 'Social', 'Finance', 'Other'] %}
+                {% set current_tag_names = entry.tags|map(attribute='name')|list if entry else [] %}
+                
+                {% for t in predefined_tags %}
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; background-color: var(--bg-color); padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid var(--border-color);">
+                    <input type="checkbox" name="tags" value="{{ t }}" {% if t in current_tag_names %}checked{% endif %}>
+                    <span>{{ t }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div>
+                <label for="custom_tags" style="font-weight: 500; display: block; margin-bottom: 0.5rem;">Custom Tags (comma separated)</label>
+                {% set custom_t = [] %}
+                {% if entry %}
+                    {% for t in current_tag_names %}
+                        {% if t not in predefined_tags %}
+                            {% set _ = custom_t.append(t) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                <input type="text" id="custom_tags" name="custom_tags" value="{{ custom_t|join(', ') }}" placeholder="e.g. Travel, Hobby"
+                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary btn-lg">{% if entry %}Update Entry{% else %}Save Entry{% endif %}</button>
+            <a href="{{ url_for('journal.history') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

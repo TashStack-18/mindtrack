@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 2rem; padding-bottom: 4rem;">
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Good morning, {{ g.user.name }}.</h1>
+        <p class="text-muted" style="font-size: 1.1rem;">How are you feeling today?</p>
+    </div>
+
+    <!-- Mood Selector Placeholder -->
+    <div class="feature-card" style="margin-bottom: 2rem; text-align: center;">
+        <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">Record a new entry to track your mood over time.</p>
+        <a href="{{ url_for('journal.create') }}" class="btn btn-primary btn-lg">Write Today's Journal</a>
+        <a href="{{ url_for('journal.history') }}" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">View History</a>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="features-grid">
+        <div class="feature-card">
+            <h3>Recent Entries</h3>
+            {% if recent_entries %}
+                <ul style="list-style: none; padding: 0;">
+                {% for entry in recent_entries %}
+                    <li style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <a href="{{ url_for('journal.detail', id=entry.id) }}" style="font-weight: 600; font-size: 1.1rem;">{{ entry.title }}</a>
+                                {% if entry.sentiment_label %}
+                                    <span style="font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 10px; background-color: {% if entry.sentiment_label == 'Positive' %}var(--positive-light){% elif entry.sentiment_label == 'Negative' %}var(--destructive-light){% else %}var(--bg-color){% endif %}; color: {% if entry.sentiment_label == 'Positive' %}var(--positive){% elif entry.sentiment_label == 'Negative' %}var(--destructive){% else %}var(--text-muted){% endif %}; border: 1px solid var(--border-color);">
+                                        {{ entry.sentiment_label }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">{{ entry.created_at.strftime('%b %d') }}</span>
+                        </div>
+                        <p style="color: var(--text-muted); margin: 0.5rem 0 0 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ entry.encrypted_content }}</p>
+                    </li>
+                {% endfor %}
+                </ul>
+                <a href="{{ url_for('journal.history') }}" style="font-size: 0.9rem; font-weight: 500;">View all &rarr;</a>
+            {% else %}
+                <p class="text-muted" style="margin-bottom: 1rem;">No journal entries yet.</p>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">Your first entry will become the starting point for your personal mood history.</p>
+                <a href="{{ url_for('journal.create') }}" class="btn btn-secondary">Write Your First Entry</a>
+            {% endif %}
+        </div>
+        
+        <div class="feature-card">
+            <h3>Recent Insight</h3>
+            {% if dashboard_insight %}
+                <div style="background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 0.8rem; letter-spacing: 0.05em;">{{ dashboard_insight.type|replace('_', ' ')|title }}</h4>
+                    <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 1rem;">{{ dashboard_insight.title }}</p>
+                    <a href="{{ url_for('insights.index') }}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">View Insights</a>
+                </div>
+            {% else %}
+                <p class="text-muted" style="margin-bottom: 1.5rem;">You'll see insights here once you start journaling.</p>
+                <a href="{{ url_for('insights.index') }}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">Go to Insights</a>
+            {% endif %}
+            
+            <h3 style="margin-top: 2rem;">Statistics</h3>
+            <p class="text-muted">Record at least 3 entries to start seeing patterns.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Journal History - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; padding-top: 2rem; padding-bottom: 4rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <h1>Journal History</h1>
+        <a href="{{ url_for('journal.create') }}" class="btn btn-primary">Write New Entry</a>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="feature-card" style="margin-bottom: 2rem; padding: 1.5rem;">
+        <form method="get" action="{{ url_for('journal.history') }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex-grow: 1; min-width: 200px;">
+                <label for="q" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Search</label>
+                <input type="text" id="q" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search entries..." 
+                       style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+            </div>
+            
+            <div>
+                <label for="mood" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Filter by Mood</label>
+                <select id="mood" name="mood" style="padding: 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); min-width: 150px; background-color: var(--surface-color);">
+                    <option value="">All Moods</option>
+                    <option value="5" {% if request.args.get('mood') == '5' %}selected{% endif %}>5 - Great</option>
+                    <option value="4" {% if request.args.get('mood') == '4' %}selected{% endif %}>4 - Good</option>
+                    <option value="3" {% if request.args.get('mood') == '3' %}selected{% endif %}>3 - Okay</option>
+                    <option value="2" {% if request.args.get('mood') == '2' %}selected{% endif %}>2 - Low</option>
+                    <option value="1" {% if request.args.get('mood') == '1' %}selected{% endif %}>1 - Very Low</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="tag" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Filter by Tag</label>
+                <select id="tag" name="tag" style="padding: 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); min-width: 150px; background-color: var(--surface-color);">
+                    <option value="">All Tags</option>
+                    {% for t in tags %}
+                        <option value="{{ t.name }}" {% if request.args.get('tag') == t.name %}selected{% endif %}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <button type="submit" class="btn btn-secondary" style="padding: 0.6rem 1rem;">Filter</button>
+                <a href="{{ url_for('journal.history') }}" class="btn btn-secondary" style="padding: 0.6rem 1rem;">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Entries List -->
+    {% if entries %}
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for entry in entries %}
+            <div class="feature-card" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <h3 style="margin: 0;">{{ entry.title }}</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">{{ entry.created_at.strftime('%B %d, %Y') }}</span>
+                        <span style="background-color: var(--positive-light); color: var(--positive); padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">{{ entry.mood_score }} - {{ entry.mood_label }}</span>
+                    </div>
+                </div>
+                
+                {% if entry.tags.count() > 0 %}
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    {% for tag in entry.tags %}
+                    <span style="background-color: var(--primary-light); color: var(--primary); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem;">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+                    {{ entry.encrypted_content }}
+                </p>
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('journal.detail', id=entry.id) }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">View</a>
+                    <a href="{{ url_for('journal.edit', id=entry.id) }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Edit</a>
+                    <form action="{{ url_for('journal.delete', id=entry.id) }}" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this entry?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; color: var(--destructive);">Delete</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <div class="feature-card text-center" style="padding: 4rem 2rem;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-bottom: 1rem;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <h3 style="margin-bottom: 0.5rem;">No journal entries yet</h3>
+            <p class="text-muted" style="margin-bottom: 1.5rem;">Your first entry will become the starting point for your personal mood history.</p>
+            <a href="{{ url_for('journal.create') }}" class="btn btn-primary">Write Your First Entry</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
