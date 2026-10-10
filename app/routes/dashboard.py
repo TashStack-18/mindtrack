@@ -98,8 +98,18 @@ def dashboard_view():
         chart_dates.append(entry.created_at.strftime('%b %d'))
         chart_scores.append(entry.mood_score)
 
+    from app.services.encryption_service import decrypt_text
+    for entry in recent_entries:
+        try:
+            entry.preview_text = decrypt_text(entry.encrypted_content)
+        except Exception:
+            entry.preview_text = "[Encrypted Content]"
+
+    consistency_days = sum(1 for d in this_week if d['count'] > 0)
+
     return render_template(
         'dashboard.html',
+        consistency_days=consistency_days,
         recent_entries=recent_entries,
         all_entries=all_entries,
         entry_count=len(all_entries),

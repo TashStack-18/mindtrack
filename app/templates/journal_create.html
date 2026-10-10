@@ -37,14 +37,16 @@
         <!-- Step 2: Feelings Layer -->
         <div style="margin-bottom: 4rem; background: var(--surface-color); padding: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
             <p style="text-align: center; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.2rem;">What feelings are present? (Select up to 3)</p>
-            {% set current_feelings = entry.feelings if entry else [] %}
+            {% set current_feelings = (entry.feelings if entry else []) + request.args.getlist('feelings') %}
+            {% set current_feelings_lower = [] %}
+            {% for cf in current_feelings %}{% set _ = current_feelings_lower.append(cf|lower) %}{% endfor %}
             <div style="display: flex; gap: 1.5rem; justify-content: center;">
                 <div style="flex: 1; max-width: 300px;">
                     <p style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 1rem; text-align: center;">Lighter</p>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
                         {% for f in ['Calm', 'Content', 'Grateful', 'Hopeful', 'Excited', 'Proud', 'Relieved', 'Energised', 'Loved'] %}
                         <label>
-                            <input type="checkbox" name="feelings" value="{{ f }}" class="feeling-cb" style="display: none;" {% if f in current_feelings %}checked{% endif %}>
+                            <input type="checkbox" name="feelings" value="{{ f }}" class="feeling-cb" style="display: none;" {% if f|lower in current_feelings_lower %}checked{% endif %}>
                             <span class="chip chip-light">{{ f }}</span>
                         </label>
                         {% endfor %}
@@ -56,7 +58,7 @@
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
                         {% for f in ['Tired', 'Stressed', 'Overwhelmed', 'Worried', 'Lonely', 'Frustrated', 'Sad', 'Restless', 'Numb', 'Disappointed'] %}
                         <label>
-                            <input type="checkbox" name="feelings" value="{{ f }}" class="feeling-cb" style="display: none;" {% if f in current_feelings %}checked{% endif %}>
+                            <input type="checkbox" name="feelings" value="{{ f }}" class="feeling-cb" style="display: none;" {% if f|lower in current_feelings_lower %}checked{% endif %}>
                             <span class="chip chip-heavy">{{ f }}</span>
                         </label>
                         {% endfor %}

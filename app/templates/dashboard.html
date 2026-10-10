@@ -1,148 +1,174 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Dashboard - MindTrack{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2.5rem; display: flex; align-items: center; justify-content: space-between;">
-    <div>
-        <h1 class="handwriting" style="font-size: 2.5rem; margin-bottom: 0.25rem; font-weight: 600;">{{ greeting_time }}, {{ g.user.name }} ♡</h1>
-        <p class="text-muted" style="font-size: 1.1rem;">Take a moment to check in with yourself.</p>
-    </div>
-    <div style="width: 80px; height: 80px; border-radius: var(--radius-full); background-image: url('{{ url_for('static', filename='img/daily/hero_' ~ hero_idx ~ '.jpg') }}'); background-size: cover; background-position: center; box-shadow: var(--shadow-sm); border: 3px solid var(--surface-color);"></div>
-</div>
-
-<!-- Mood Selector -->
-<div class="mood-selector">
-    <a href="{{ url_for('journal.create', mood=1) }}" class="mood-card very-low">
-        <span class="mood-icon">🌧️</span>
-        <span class="mood-label">Very Low</span>
-    </a>
-    <a href="{{ url_for('journal.create', mood=2) }}" class="mood-card low">
-        <span class="mood-icon">☁️</span>
-        <span class="mood-label">Low</span>
-    </a>
-    <a href="{{ url_for('journal.create', mood=3) }}" class="mood-card okay">
-        <span class="mood-icon">⛅</span>
-        <span class="mood-label">Okay</span>
-    </a>
-    <a href="{{ url_for('journal.create', mood=4) }}" class="mood-card good">
-        <span class="mood-icon">☀️</span>
-        <span class="mood-label">Good</span>
-    </a>
-    <a href="{{ url_for('journal.create', mood=5) }}" class="mood-card great">
-        <span class="mood-icon">✨</span>
-        <span class="mood-label">Great</span>
-    </a>
-</div>
-
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
-    <!-- Left Column: Chart & Recent Entries -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
-
-        <!-- Mood Journey Chart -->
-        <div class="card">
-            <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Mood Journey</h3>
-            {% if chart_scores and chart_scores|length > 0 %}
-            <div style="height: 250px; position: relative;">
-                <canvas id="moodChart"></canvas>
+<div class="dashboard-grid">
+    <section class="main-column">
+        <article class="hero">
+            <div class="hero-copy">
+                <p class="hero-greeting">{{ greeting_time }},</p>
+                <h1>{{ g.user.name.split(" ")[0] }} <span>♡</span></h1>
+                <p class="hero-question">How are you feeling today?</p>
+                <p>Your feelings matter. Take a moment for yourself.</p>
             </div>
-            {% else %}
-            <div style="text-align: center; padding: 2rem 0;">
-                <p class="text-muted" style="margin-bottom: 1rem;">Not enough data yet.</p>
-                <p class="text-muted" style="font-size: 0.9rem;">Your mood history will appear here once you start journaling.</p>
-            </div>
-            {% endif %}
-        </div>
+            <p class="hero-note">you got<br />this ♡</p>
+        </article>
 
-        <!-- Recent Entries -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1.25rem; margin-bottom: 0;">Recent Reflections</h3>
-                <a href="{{ url_for('journal.history') }}" style="font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 0.25rem;">View all <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i></a>
+        <section class="mood-section" aria-labelledby="mood-title">
+            <div class="section-heading">
+                <div><h2 id="mood-title">Select Your Mood</h2><p>Pick the feeling that matches where you are right now.</p></div>
+                {% if checked_in_today %}
+                <span class="saved-hint">{{ render_icon("sparkles", 15) }} You checked in today!</span>
+                {% endif %}
             </div>
 
-            {% if recent_entries %}
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                {% for entry in recent_entries %}
-                    <a href="{{ url_for('journal.detail', id=entry.id) }}" style="display: block; text-decoration: none; color: inherit; padding: 1.25rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: all var(--transition-fast);" class="card-hover">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                            <div>
-                                <h4 style="font-size: 1.05rem; margin-bottom: 0.25rem; color: var(--primary);">{{ entry.title }}</h4>
-                                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
-                                    <span>{{ entry.created_at.strftime('%b %d, %Y') }}</span>
-                                    <span>&bull;</span>
-                                    <span>Mood: {{ entry.mood_score }}/5</span>
-                                </div>
-                            </div>
-                            {% if entry.sentiment_label %}
-                                <span class="badge {% if entry.sentiment_label == 'Positive' %}badge-positive{% elif entry.sentiment_label == 'Negative' %}badge-negative{% else %}badge-neutral{% endif %}">
-                                    {{ entry.sentiment_label }}
-                                </span>
+            <form action="{{ url_for('journal.create') }}" method="GET" id="mood-form">
+                <input type="hidden" name="mood" id="selected-mood-input" value="">
+                <div id="hidden-feelings-container"></div>
+
+                <div class="mood-grid">
+                    <button type="button" class="mood-card violet" data-mood="1" onclick="selectMood(this, 1)">
+                        <span class="mood-face low" aria-hidden="true">
+                            <i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i>
+                        </span>
+                        <strong>Very Low</strong>
+                        <span>Really struggling today</span>
+                    </button>
+                    <button type="button" class="mood-card blue" data-mood="2" onclick="selectMood(this, 2)">
+                        <span class="mood-face blue" aria-hidden="true" style="--face: #68b7ed;">
+                            <i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i>
+                        </span>
+                        <strong>Low</strong>
+                        <span>Not my best self</span>
+                    </button>
+                    <button type="button" class="mood-card yellow" data-mood="3" onclick="selectMood(this, 3)">
+                        <span class="mood-face okay" aria-hidden="true">
+                            <i class="eye left"></i><i class="eye right"></i><i class="mouth flat"></i>
+                        </span>
+                        <strong>Okay</strong>
+                        <span>Just existing</span>
+                    </button>
+                    <button type="button" class="mood-card green" data-mood="4" onclick="selectMood(this, 4)">
+                        <span class="mood-face good" aria-hidden="true" style="--face: #7dcbb0;">
+                            <i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i>
+                        </span>
+                        <strong>Good</strong>
+                        <span>Feeling positive</span>
+                    </button>
+                    <button type="button" class="mood-card pink" data-mood="5" onclick="selectMood(this, 5)">
+                        <span class="mood-face great" aria-hidden="true">
+                            <i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i><b class="heart one">♥</b><b class="heart two">♥</b>
+                        </span>
+                        <strong>Great</strong>
+                        <span>Amazing today!</span>
+                    </button>
+                </div>
+
+                <div class="emotion-panel" id="emotion-panel" style="display: none;">
+                    <div class="emotion-intro"><strong>What else are you feeling?</strong><span>Choose up to three</span></div>
+                    <div class="emotion-chips">
+                        {% set emotions = ["Calm", "Grateful", "Hopeful", "Excited", "Tired", "Stressed", "Overwhelmed", "Worried", "Lonely", "Sad", "Frustrated"] %}
+                        {% for emotion in emotions %}
+                        <button type="button" class="emotion-btn" data-emotion="{{ emotion }}" onclick="toggleEmotion(this)">{{ emotion }}</button>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="journal-cta" id="continue-btn" disabled>Continue to journal {{ render_icon("arrow", 16) }}</button>
+                </div>
+            </form>
+        </section>
+
+        <div class="lower-grid">
+            <article class="content-card journey-card">
+                <div class="card-title">
+                    <div><span class="title-icon">{{ render_icon("insights", 17) }}</span><h2>Your Mood Journey</h2></div>
+                    <a href="{{ url_for('insights.index') }}" style="color: inherit; text-decoration: none;"><button type="button">View all {{ render_icon("arrow", 14) }}</button></a>
+                </div>
+
+                {% if chart_scores and chart_scores|length > 0 %}
+                <div class="chart-wrap">
+                    <div class="scale" aria-hidden="true"><span>Great</span><span>Good</span><span>Okay</span><span>Low</span></div>
+                    <canvas id="moodChart" style="width: 100%; height: 182px;"></canvas>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 2rem 0;">
+                    <p class="text-muted" style="margin-bottom: 1rem;">Not enough data yet.</p>
+                    <p class="text-muted" style="font-size: 0.9rem;">Your mood history will appear here once you start journaling.</p>
+                </div>
+                {% endif %}
+            </article>
+
+            <article class="content-card moments-card">
+                <div class="card-title">
+                    <div><span class="title-icon">{{ render_icon("journal", 17) }}</span><h2>Recent Moments</h2></div>
+                    <a href="{{ url_for('journal.history') }}" style="color: inherit; text-decoration: none;"><button type="button">View all {{ render_icon("arrow", 14) }}</button></a>
+                </div>
+                <div class="moments">
+                    {% if recent_entries %}
+                        {% for entry in recent_entries %}
+                        <button class="moment" onclick="window.location.href='{{ url_for('journal.detail', id=entry.id) }}'">
+                            {% if entry.mood_score == 5 %}
+                                <span class="mood-face great" aria-hidden="true"><i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i></span>
+                            {% elif entry.mood_score == 4 %}
+                                <span class="mood-face good" aria-hidden="true" style="--face: #7dcbb0;"><i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i></span>
+                            {% elif entry.mood_score == 3 %}
+                                <span class="mood-face okay" aria-hidden="true"><i class="eye left"></i><i class="eye right"></i><i class="mouth flat"></i></span>
+                            {% elif entry.mood_score == 2 %}
+                                <span class="mood-face blue" aria-hidden="true" style="--face: #68b7ed;"><i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i></span>
+                            {% else %}
+                                <span class="mood-face low" aria-hidden="true"><i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i></span>
                             {% endif %}
+
+                            <span>
+                                <strong>{{ entry.title }}</strong>
+                                <small>{{ entry.preview_text }}</small>
+                                <time>{{ entry.created_at.strftime("%A, %I:%M %p") }}</time>
+                            </span>
+                            {{ render_icon("chevron", 16) }}
+                        </button>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; padding: 1.5rem 0;">
+                            <p style="color: var(--muted); font-size: 11px;">Your journal is empty.</p>
                         </div>
-                        <p style="color: var(--text-muted); margin: 0; font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                            {{ entry.encrypted_content }}
-                        </p>
-                    </a>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <aside class="right-column">
+        <article class="side-card checkin">
+            <div class="side-card-title"><span>⌁</span><h2>Today's Check-in</h2></div>
+            <p>How are you feeling today?</p>
+            <button onclick="document.getElementById('mood-title')?.scrollIntoView({ behavior: 'smooth' })">
+                <span class="mood-face okay" aria-hidden="true" id="checkin-face" style="--face: #d8cdf6;"><i class="eye left"></i><i class="eye right"></i><i class="mouth flat"></i></span>
+                <span id="checkin-text">Not checked in yet</span>
+                {{ render_icon("arrow", 15) }}
+            </button>
+            <div class="valid-note"><span>Your feelings<br />are valid</span><b>♡</b></div>
+        </article>
+
+        <article class="side-card consistency">
+            <div class="side-card-title"><span>✦</span><h2>Mood Consistency</h2></div>
+            <strong>{{ consistency_days }} <small>days this week</small></strong>
+            <p>One gentle moment at a time.</p>
+            <div class="week-dots">
+                {% for d in this_week %}
+                    <span><i class="{% if d.count > 0 %}done{% endif %}">{% if d.count > 0 %}✓{% endif %}</i>{{ d.day_name[0] }}</span>
                 {% endfor %}
-                </div>
-            {% else %}
-                <div style="text-align: center; padding: 2rem 0; border: 1px dashed var(--border-color); border-radius: var(--radius-md);">
-                    <i data-lucide="book-heart" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-                    <p class="text-muted" style="margin-bottom: 1rem;">Your journal is empty.</p>
-                    <a href="{{ url_for('journal.create') }}" class="btn btn-secondary">Write Your First Entry</a>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Right Column: Insights & Quick Prompts -->
-    <div style="display: flex; flex-direction: column; gap: 2rem;">
-
-        <!-- Insights Panel -->
-        <div class="card" style="background-color: var(--accent-light); border-color: var(--accent-light);">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem;">
-                <i data-lucide="sparkles" style="color: var(--accent);"></i>
-                <h3 style="font-size: 1.25rem; margin-bottom: 0;">Insight</h3>
             </div>
+        </article>
 
-            {% if dashboard_insight %}
-                <div>
-                    <h4 style="font-size: 0.85rem; color: var(--accent); text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em; font-weight: 700;">{{ dashboard_insight.type|replace('_', ' ')|title }}</h4>
-                    <p style="font-size: 1.05rem; font-weight: 500; margin-bottom: 1.5rem; color: var(--primary); line-height: 1.5;">{{ dashboard_insight.title }}</p>
-                    <a href="{{ url_for('insights.index') }}" class="btn btn-accent" style="width: 100%;">Explore Patterns</a>
-                </div>
-            {% else %}
-                <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">You'll see personalized insights here once you start journaling more regularly.</p>
-                <a href="{{ url_for('insights.index') }}" class="btn btn-secondary" style="width: 100%; border-color: transparent; background-color: var(--surface-color);">View Insights Page</a>
-            {% endif %}
-        </div>
+        <article class="inspiration" style="background-image: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0)), url('{{ url_for('static', filename='img/daily/hero_' ~ hero_idx ~ '.jpg') }}'); background-size: cover; background-position: center; color: white;">
+            <div style="position: relative; z-index: 1;"><p>Better days<br />are coming</p><span>♡</span></div>
+            <small style="position: relative; z-index: 1;">A moment of calm</small>
+        </article>
 
-        <!-- Quick Prompts -->
-        <div class="card">
-            <h3 style="margin-bottom: 1.25rem; font-size: 1.25rem;">Quick Reflection</h3>
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <a href="{{ url_for('journal.create', prompt='What made today meaningful?') }}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left; padding: 1rem; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 400; color: var(--primary);">
-                    "What made today meaningful?"
-                </a>
-                <a href="{{ url_for('journal.create', prompt='What is one thing you are grateful for?') }}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left; padding: 1rem; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 400; color: var(--primary);">
-                    "What is one thing you are grateful for?"
-                </a>
-                <a href="{{ url_for('journal.create', prompt='What would you like to understand better?') }}" class="btn btn-secondary" style="justify-content: flex-start; text-align: left; padding: 1rem; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 400; color: var(--primary);">
-                    "What would you like to understand better?"
-                </a>
-            </div>
-        </div>
-
-        <!-- Wellness Reminder -->
-        <div style="padding: 1.5rem; text-align: center;">
-            <p class="text-muted" style="font-size: 0.9rem;">
-                <i data-lucide="coffee" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i>
-                Remember to take a breath and stay hydrated.
-            </p>
-        </div>
-
-    </div>
+        <article class="privacy-note">
+            <span>♡</span><div><strong>Your space is private</strong><p>Your entries stay protected and belong only to you.</p></div>
+        </article>
+    </aside>
 </div>
 {% endblock %}
 
@@ -150,88 +176,107 @@
 {% if chart_scores and chart_scores|length > 0 %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('moodChart').getContext('2d');
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById("moodChart").getContext("2d");
+        const chartDates = {{ chart_dates|tojson }};
+        const chartScores = {{ chart_scores|tojson }};
 
-    // Gradient fill
-    let gradient = ctx.createLinearGradient(0, 0, 0, 250);
-    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
-    gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+        let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, "rgba(137, 117, 217, 0.5)");
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ chart_dates|tojson }},
-            datasets: [{
-                label: 'Mood',
-                data: {{ chart_scores|tojson }},
-                borderColor: '#6366F1', // accent color
-                backgroundColor: gradient,
-                borderWidth: 2,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#6366F1',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: chartDates,
+                datasets: [{
+                    label: "Mood Score",
+                    data: chartScores,
+                    borderColor: "#8975d9",
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: "#EE75B9",
+                    pointBorderColor: "#fff",
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
                 },
-                tooltip: {
-                    backgroundColor: '#1E293B',
-                    titleFont: { family: "'Inter', sans-serif", size: 13 },
-                    bodyFont: { family: "'Inter', sans-serif", size: 14, weight: 'bold' },
-                    padding: 10,
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) {
-                            let score = context.raw;
-                            let labels = {1: 'Very Low', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great'};
-                            return labels[score] + ' (' + score + '/5)';
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    min: 1,
-                    max: 5,
-                    ticks: {
-                        stepSize: 1,
-                        color: '#64748B',
-                        font: { family: "'Inter', sans-serif" }
+                scales: {
+                    y: {
+                        min: 1,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                const labels = {1: "Very Low", 2: "Low", 3: "Okay", 4: "Good", 5: "Great"};
+                                return labels[value];
+                            }
+                        },
+                        grid: { borderDash: [4, 4] }
                     },
-                    grid: {
-                        color: '#E2E8F0',
-                        drawBorder: false
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#64748B',
-                        font: { family: "'Inter', sans-serif" },
-                        maxTicksLimit: 7
-                    },
-                    grid: {
-                        display: false,
-                        drawBorder: false
-                    }
+                    x: { grid: { display: false } }
                 }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index',
-            },
-        }
+            }
+        });
     });
-});
 </script>
 {% endif %}
+
+<script>
+    let selectedFeelings = [];
+
+    function selectMood(btn, score) {
+        // Update input
+        document.getElementById("selected-mood-input").value = score;
+
+        // UI updates
+        document.querySelectorAll(".mood-card").forEach(c => {
+            c.classList.remove("selected");
+            const em = c.querySelector("em");
+            if (em) em.remove();
+        });
+
+        btn.classList.add("selected");
+        const em = document.createElement("em");
+        em.innerText = "Selected";
+        btn.appendChild(em);
+
+        // Show emotion panel
+        document.getElementById("emotion-panel").style.display = "flex";
+        document.getElementById("continue-btn").disabled = false;
+
+        // Update check-in card
+        const labels = {1: "Very Low", 2: "Low", 3: "Okay", 4: "Good", 5: "Great"};
+        document.getElementById("checkin-text").innerText = labels[score] + " selected";
+    }
+
+    function toggleEmotion(btn) {
+        const emotion = btn.dataset.emotion;
+        if (selectedFeelings.includes(emotion)) {
+            selectedFeelings = selectedFeelings.filter(e => e !== emotion);
+            btn.classList.remove("selected");
+        } else {
+            if (selectedFeelings.length < 3) {
+                selectedFeelings.push(emotion);
+                btn.classList.add("selected");
+            }
+        }
+        const container = document.getElementById("hidden-feelings-container");
+        container.innerHTML = "";
+        selectedFeelings.forEach(f => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "feelings";
+            input.value = f;
+            container.appendChild(input);
+        });
+    }
+</script>
 {% endblock %}

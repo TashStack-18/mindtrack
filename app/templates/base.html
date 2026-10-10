@@ -7,94 +7,93 @@
     <title>{% block title %}MindTrack | Calm, Privacy-First Mood Journal{% endblock %}</title>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/style.css") }}">
     {% if g.user %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mindy.css') }}">
+    <link rel="stylesheet" href="{{ url_for("static", filename="css/mindy.css") }}">
     {% endif %}
-
-    <!-- Icons (Lucide via unpkg for lightweight beautiful icons) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
+    {% from "partials/icons.html" import render_icon %}
     {% if g.user %}
-    <div class="app-wrapper">
-        <!-- Persistent Left Sidebar -->
+    <div class="app-shell">
         <aside class="sidebar">
-            <a href="{{ url_for('dashboard.dashboard_view') }}" class="brand-logo">
-                <i data-lucide="leaf" style="color: var(--accent);"></i>
-                MindTrack
-            </a>
-
-            <nav class="sidebar-nav">
-                <a href="{{ url_for('dashboard.dashboard_view') }}" class="nav-item {% if request.endpoint == 'dashboard.dashboard_view' %}active{% endif %}">
-                    <i data-lucide="home"></i> Home
+            <div>
+                <a href="{{ url_for("dashboard.dashboard_view") }}" class="brand" style="text-decoration: none;">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
+                    </span>
+                    <span><strong>MindTrack</strong><small>Better Mind + Brighter You</small></span>
                 </a>
-                <a href="{{ url_for('journal.history') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('journal.') %}active{% endif %}">
-                    <i data-lucide="book-open"></i> Journal
-                </a>
-                <a href="{{ url_for('insights.index') }}" class="nav-item {% if request.endpoint == 'insights.index' %}active{% endif %}">
-                    <i data-lucide="sparkles"></i> Insights
-                </a>
-                <a href="{{ url_for('reports.index') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}">
-                    <i data-lucide="file-text"></i> Reports
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 0.5rem;">
-                    <i data-lucide="lock" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle;"></i>
-                    Privacy-first
-                </div>
-                <div class="user-profile">
-                    <div class="user-avatar">{{ g.user.name[0].upper() }}</div>
-                    <div style="flex: 1;">
-                        <div class="user-name">{{ g.user.name }}</div>
-                    </div>
-                    <a href="{{ url_for('auth.logout') }}" title="Log Out" style="color: var(--text-muted);">
-                        <i data-lucide="log-out"></i>
+                <nav class="side-nav" aria-label="Primary navigation">
+                    <a href="{{ url_for("dashboard.dashboard_view") }}" class="{% if request.endpoint == "dashboard.dashboard_view" %}active{% endif %}" style="text-decoration: none;">
+                        {{ render_icon("home") }}<span>Home</span>
                     </a>
-                </div>
+                    <a href="{{ url_for("journal.history") }}" class="{% if request.endpoint and request.endpoint.startswith("journal.") %}active{% endif %}" style="text-decoration: none;">
+                        {{ render_icon("journal") }}<span>Journal</span>
+                    </a>
+                    <a href="{{ url_for("insights.index") }}" class="{% if request.endpoint == "insights.index" %}active{% endif %}" style="text-decoration: none;">
+                        {{ render_icon("insights") }}<span>Insights</span>
+                    </a>
+                    <a href="{{ url_for("reports.index") }}" class="{% if request.endpoint and request.endpoint.startswith("reports.") %}active{% endif %}" style="text-decoration: none;">
+                        {{ render_icon("reports") }}<span>Reports</span>
+                    </a>
+                    <a href="#" onclick="document.getElementById('mindy-launcher').click(); return false;" class="{% if request.endpoint and request.endpoint.startswith('mindy.') %}active{% endif %}" style="text-decoration: none;">
+                        {{ render_icon("mindy") }}<span>Mindy</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="sidebar-affirmation" aria-label="Small steps make big changes">
+                <svg viewBox="0 0 80 108" aria-hidden="true"><path d="M38 104C36 74 38 43 57 11M38 77C21 67 18 53 18 39c13 6 19 18 20 38ZM43 57c0-16 7-28 22-35 0 15-5 27-22 35ZM50 35c-1-10 3-19 13-26 2 11-2 20-13 26Z" /></svg>
+                <p>Small steps<br />make big<br />changes <span>♡</span></p>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
-        <div class="main-content">
-            <header class="top-navbar">
-                <div>
-                    <!-- Optional: Page context or Breadcrumbs -->
-                </div>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <button class="btn btn-secondary" style="padding: 0.5rem; border-radius: 50%;" title="Search">
-                        <i data-lucide="search" style="width: 20px; height: 20px;"></i>
-                    </button>
-                    <!-- Notification placeholder -->
-                    <button class="btn btn-secondary" style="padding: 0.5rem; border-radius: 50%;" title="Notifications">
-                        <i data-lucide="bell" style="width: 20px; height: 20px;"></i>
-                    </button>
+        <main class="workspace">
+            <header class="topbar">
+                <form action="{{ url_for("journal.history") }}" method="GET" style="margin: 0; padding: 0; width: min(460px, 52%);">
+                    <label class="search">
+                        {{ render_icon("search", 18) }}
+                        <input type="text" name="q" aria-label="Search your thoughts" placeholder="Search your thoughts..." value="{{ request.args.get("q", "") }}">
+                    </label>
+                </form>
+                <div class="account">
+                    <button class="icon-button" aria-label="Notifications">{{ render_icon("bell") }}<span class="notification-dot"></span></button>
+                    <a href="{{ url_for("auth.logout") }}" class="profile-button" style="text-decoration: none; color: inherit;">
+                        <span class="avatar" aria-hidden="true">{{ g.user.name[0].upper() }}</span>
+                        <span>{{ g.user.name }}</span>{{ render_icon("chevron", 16) }}
+                    </a>
                 </div>
             </header>
-
-            <main class="page-container">
     {% else %}
     <div class="unauth-wrapper">
         <header class="unauth-navbar">
-            <a href="{{ url_for('dashboard.index') }}" class="brand-logo" style="margin-bottom: 0;">
-                <i data-lucide="leaf" style="color: var(--accent);"></i>
-                MindTrack
+            <a href="{{ url_for("dashboard.index") }}" class="brand" style="margin-bottom: 0; text-decoration: none;">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
+                </span>
+                <span><strong>MindTrack</strong></span>
             </a>
             <nav style="display: flex; gap: 1.5rem; align-items: center;">
-                <a href="{{ url_for('auth.login') }}" style="color: var(--text-muted); font-weight: 500;">Log In</a>
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding: 0.5rem 1.25rem;">Start Journaling</a>
+                <a href="{{ url_for("auth.login") }}" style="color: var(--muted); font-weight: 500; text-decoration: none;">Log In</a>
+                <a href="{{ url_for("auth.register") }}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; background: var(--primary-dark); color: white; border-radius: 13px; text-decoration: none;">Start Journaling</a>
             </nav>
         </header>
-        <main class="page-container">
+        <main class="page-container" style="padding: 2rem;">
     {% endif %}
 
             {% block content %}{% endblock %}
 
     {% if g.user %}
-            </main>
-        </div>
+        </main>
+
+        <!-- Mobile nav -->
+        <nav class="mobile-nav" aria-label="Mobile navigation">
+            <a href="{{ url_for("dashboard.dashboard_view") }}" class="{% if request.endpoint == "dashboard.dashboard_view" %}active{% endif %}">{{ render_icon("home", 20) }}<span>Home</span></a>
+            <a href="{{ url_for("journal.history") }}" class="{% if request.endpoint and request.endpoint.startswith("journal.") %}active{% endif %}">{{ render_icon("journal", 20) }}<span>Journal</span></a>
+            <a href="{{ url_for("insights.index") }}" class="{% if request.endpoint == "insights.index" %}active{% endif %}">{{ render_icon("insights", 20) }}<span>Insights</span></a>
+            <a href="{{ url_for("reports.index") }}" class="{% if request.endpoint and request.endpoint.startswith("reports.") %}active{% endif %}">{{ render_icon("reports", 20) }}<span>Reports</span></a>
+            <a href="#" onclick="document.getElementById('mindy-launcher').click(); return false;" class="{% if request.endpoint and request.endpoint.startswith('mindy.') %}active{% endif %}">{{ render_icon("mindy", 20) }}<span>Mindy</span></a>
+        </nav>
     </div>
     {% else %}
         </main>
@@ -102,14 +101,10 @@
     {% endif %}
 
     <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-    </script>
+    <script src="{{ url_for("static", filename="js/app.js") }}"></script>
     {% if g.user %}
-    {% include 'partials/mindy.html' %}
-    <script src="{{ url_for('static', filename='js/mindy.js') }}"></script>
+    {% include "partials/mindy.html" %}
+    <script src="{{ url_for("static", filename="js/mindy.js") }}"></script>
     {% endif %}
     {% block scripts %}{% endblock %}
 </body>
