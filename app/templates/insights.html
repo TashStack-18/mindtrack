@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
+{% from 'macros/mood.html' import render_mood %}
 
-{% block title %}Insights - MindTrack{% endblock %}
+{% block title %}Your Patterns - MindTrack{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h1 style="margin-bottom: 0.5rem; font-size: 2.2rem;">INSIGHTS</h1>
-            <p class="text-muted" style="margin: 0;">Patterns from your recent journal entries</p>
+<div class="container page-enter" style="max-width: 1100px; padding-top: 3rem; padding-bottom: 6rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem; flex-wrap: wrap; gap: 2rem;">
+        <div style="max-width: 700px;">
+            <h1 style="margin-bottom: 0.5rem; font-size: 3.5rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.03em;">Things You Might Notice</h1>
+            <p class="text-muted" style="margin: 0; font-size: 1.3rem; font-weight: 500;">MindTrack looks at the moments you've recorded and helps you notice recurring patterns — without judging or diagnosing you.</p>
         </div>
         
-        <form method="get" action="{{ url_for('insights.index') }}" style="display: flex; flex-direction: column; align-items: flex-end;">
-            <label for="range" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Date range:</label>
-            <select id="range" name="range" onchange="this.form.submit()" style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background-color: var(--surface-color); font-size: 0.95rem;">
+        <form method="get" action="{{ url_for('insights.index') }}" style="display: flex; flex-direction: column; align-items: flex-end; background: var(--surface-color); padding: 0.8rem; border-radius: 40px;">
+            <select id="range" name="range" onchange="this.form.submit()" style="padding: 0.8rem 1.5rem; border: none; background-color: var(--bg-color); border-radius: 30px; font-size: 1rem; font-weight: 600; color: var(--text-main); outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;">
                 <option value="7" {% if current_range == '7' %}selected{% endif %}>Last 7 days</option>
                 <option value="30" {% if current_range == '30' %}selected{% endif %}>Last 30 days</option>
                 <option value="all" {% if current_range == 'all' %}selected{% endif %}>All time</option>
@@ -21,59 +21,126 @@
     </div>
 
     {% if entry_count < 3 %}
-        <div class="feature-card text-center" style="padding: 4rem 2rem;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-bottom: 1rem;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-            </svg>
-            <h3 style="margin-bottom: 0.5rem;">Not enough entries yet</h3>
-            {% if entry_count == 0 %}
-            <p class="text-muted" style="margin-bottom: 1.5rem;">Continue journaling and MindTrack will begin identifying recurring patterns.</p>
-            {% else %}
-            <p class="text-muted" style="margin-bottom: 1.5rem;">{{ 3 - entry_count }} more entries are needed before MindTrack can identify recurring patterns.</p>
-            {% endif %}
-            <a href="{{ url_for('journal.create') }}" class="btn btn-primary">Write a Journal</a>
-        </div>
-    {% elif not insights %}
-        <div class="feature-card text-center" style="padding: 4rem 2rem;">
-            <h3 style="margin-bottom: 0.5rem;">No strong patterns detected</h3>
-            <p class="text-muted" style="margin-bottom: 1.5rem;">There wasn't enough variation or repetition in your entries during this period to generate insights.</p>
+        <div style="text-align: center; padding: 6rem 0; background: var(--surface-color); border-radius: 40px;">
+            <div style="margin-bottom: 2rem; opacity: 0.5;">
+                {{ render_mood(3, size=64, inline_style="width: 120px; height: 120px;") }}
+            </div>
+            <h3 style="margin-bottom: 0.8rem; font-size: 1.8rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.01em;">Something you might notice</h3>
+            <p class="text-muted" style="margin-bottom: 2.5rem; font-size: 1.1rem; max-width: 400px; margin-left: auto; margin-right: auto;">Your patterns will appear here as you write. Keep checking in to build your story.</p>
+            <a href="{{ url_for('journal.create') }}" class="btn btn-primary btn-lg" style="box-shadow: 0 8px 25px rgba(229, 140, 132, 0.4); padding: 1rem 2.5rem; border-radius: 30px; font-weight: 700;">Check in now</a>
         </div>
     {% else %}
         
-        <div style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 4rem;">
-        {% for insight in insights %}
-            <div class="feature-card" style="padding: 2rem;">
-                {% if insight.type == 'recurring_theme' %}
-                    <h4 style="font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.05em;">YOUR RECENT PATTERNS</h4>
-                {% elif insight.type == 'mood_association' %}
-                    <h4 style="font-size: 0.85rem; color: var(--accent); text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.05em;">RECORDED MOOD</h4>
-                {% elif insight.type in ['mood_trend', 'sentiment_trend'] %}
-                    <h4 style="font-size: 0.85rem; color: var(--text-main); text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.05em;">RECENT TREND</h4>
-                {% endif %}
+        <div class="features-grid" style="gap: 2rem;">
+            
+            <div style="display: flex; flex-direction: column; gap: 2rem;">
                 
-                <h3 style="font-size: 1.4rem; margin-bottom: 0.8rem; line-height: 1.4;">{{ insight.title }}</h3>
-                <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 1.5rem; line-height: 1.6;">{{ insight.description }}</p>
-                
-                <details style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem;">
-                    <summary style="cursor: pointer; padding: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Why am I seeing this?</summary>
-                    <ul style="margin: 0.5rem 0 0 0; padding-left: 2rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
-                        {% for reason in insight.why %}
-                        <li>{{ reason }}</li>
+                <!-- MOOD JOURNEY ORBIT -->
+                <div class="feature-card" style="padding: 4rem 2rem; border-radius: 32px; background-color: var(--surface-color); text-align: center; position: relative; min-height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
+                    <p style="font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-main); font-weight: 800; position: absolute; top: 2.5rem; left: 2.5rem; margin: 0;">Mood Journey</p>
+                    
+                    <div class="orbit-container" style="position: relative; width: 280px; height: 280px; margin: 2rem auto;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10; background: var(--surface-color); width: 120px; height: 120px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                            <p style="font-size: 3.5rem; color: var(--primary); font-weight: 900; margin: 0; line-height: 1; letter-spacing: -0.05em;">{{ entries[:10]|length }}</p>
+                            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem;">moments</p>
+                        </div>
+                        
+                        <!-- Decorative Orbits -->
+                        <div style="position: absolute; top: 5%; left: 5%; right: 5%; bottom: 5%; border: 2px dashed rgba(106, 127, 155, 0.15); border-radius: 50%;"></div>
+                        <div style="position: absolute; top: -5%; left: -5%; right: -5%; bottom: -5%; border: 1px solid rgba(106, 127, 155, 0.05); border-radius: 50%;"></div>
+                        
+                        {% for entry in entries[:10] %}
+                            {% set angle = (loop.index0 * (360 / (entries[:10]|length if entries[:10]|length > 0 else 1))) %}
+                            {% set radius = 125 %}
+                            <div class="orbit-item" style="position: absolute; top: 50%; left: 50%; width: 55px; height: 55px; margin-top: -27.5px; margin-left: -27.5px; animation: float {{ 4 + loop.index0 * 0.4 }}s infinite ease-in-out alternate; transform: rotate({{ angle }}deg) translateX({{ radius }}px) rotate(-{{ angle }}deg); z-index: 5;">
+                                {{ render_mood(entry.mood_score, size=64, inline_style="width: 100%; height: 100%; transition: transform 0.2s; cursor: default; transform: scale(1.1); filter: drop-shadow(0 8px 15px rgba(0,0,0,0.1));") }}
+                            </div>
                         {% endfor %}
-                    </ul>
-                </details>
+                    </div>
+                </div>
+
+                <!-- RECURRING THEMES -->
+                <div class="feature-card" style="padding: 3rem; border-radius: 32px; background-color: var(--surface-color);">
+                    <p style="font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-main); margin-bottom: 2.5rem; font-weight: 800;">Recurring Themes</p>
+                    
+                    {% set theme_counts = {} %}
+                    {% for entry in entries %}
+                        {% for theme in entry.detected_themes %}
+                            {% if theme_counts.get(theme.theme_name) %}
+                                {% set _ = theme_counts.update({theme.theme_name: theme_counts[theme.theme_name] + 1}) %}
+                            {% else %}
+                                {% set _ = theme_counts.update({theme.theme_name: 1}) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    
+                    {% if theme_counts %}
+                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            {% for theme_name, count in theme_counts.items() %}
+                                {% set max_count = theme_counts.values()|max %}
+                                {% set pct = (count / max_count) * 100 %}
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.6rem;">
+                                        <span style="font-weight: 700; color: var(--text-main); font-size: 1.1rem;">{{ theme_name }}</span>
+                                        <span style="color: var(--text-muted); font-weight: 600; font-size: 0.9rem;">{{ count }} entries</span>
+                                    </div>
+                                    <div style="height: 14px; background-color: var(--bg-color); border-radius: 7px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+                                        <div style="height: 100%; width: {{ pct }}%; background: #E58C84; border-radius: 7px;"></div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div style="text-align: center; padding: 2rem 0; opacity: 0.5;">
+                            <p style="font-weight: 600; font-size: 1.1rem; margin: 0;">No distinct themes detected yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
             </div>
-        {% endfor %}
+            
+            <div style="display: flex; flex-direction: column; gap: 2rem;">
+                <!-- RECENT OBSERVATIONS -->
+                {% if insights %}
+                    {% for insight in insights %}
+                        <div class="feature-card" style="padding: 3rem; border-radius: 32px; position: relative; overflow: hidden; border: none; background: linear-gradient(135deg, var(--surface-color), {% if loop.index0 % 3 == 0 %}#FDF0EC{% elif loop.index0 % 3 == 1 %}#F4F6F9{% else %}#FFECE9{% endif %}); transition: transform 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.02);">
+                            
+                            {% if insight.type == 'recurring_theme' %}
+                                <h4 style="font-size: 0.9rem; color: var(--mood-good); text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.05em; font-weight: 800;">✨ Recurring Theme</h4>
+                            {% elif insight.type == 'mood_association' %}
+                                <h4 style="font-size: 0.9rem; color: var(--mood-okay); text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.05em; font-weight: 800;">✨ Context Association</h4>
+                            {% elif insight.type in ['mood_trend', 'sentiment_trend'] %}
+                                <h4 style="font-size: 0.9rem; color: var(--mood-low); text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.05em; font-weight: 800;">✨ Recent Trend</h4>
+                            {% endif %}
+                            
+                            <h3 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 1.2rem; line-height: 1.3; color: var(--text-main); position: relative; z-index: 1; letter-spacing: -0.02em;">{{ insight.title }}</h3>
+                            <p style="color: var(--text-main); opacity: 0.8; font-size: 1.15rem; font-weight: 500; margin-bottom: 2.5rem; line-height: 1.7; position: relative; z-index: 1;">{{ insight.description }}</p>
+                            
+                            <details style="position: relative; z-index: 1; background-color: rgba(255,255,255,0.7); padding: 1.5rem; border-radius: 20px; backdrop-filter: blur(10px);">
+                                <summary style="cursor: pointer; font-weight: 700; font-size: 1rem; color: var(--text-main); outline: none;">Why am I seeing this?</summary>
+                                <div style="margin-top: 1rem;">
+                                    <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-muted); font-size: 1rem; line-height: 1.6; font-weight: 500;">
+                                        {% for reason in insight.why %}
+                                        <li style="margin-bottom: 0.5rem;">{{ reason }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </details>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="feature-card" style="padding: 4rem 3rem; border-radius: 32px; background-color: var(--surface-color); text-align: center;">
+                        <div style="margin-bottom: 2rem; opacity: 0.4;">
+                            {{ render_mood(3, size=64, inline_style="width: 80px; height: 80px;") }}
+                        </div>
+                        <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.8rem; color: var(--text-main);">No distinct patterns yet.</h3>
+                        <p style="color: var(--text-muted); font-size: 1.1rem; line-height: 1.6;">There wasn't enough repetition in your recent entries to highlight distinct patterns. Keep journaling to build your data.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
         </div>
         
-        <!-- Reflection Hook -->
-        <div class="feature-card text-center" style="padding: 3rem 2rem; background-color: var(--surface-color); border: 2px dashed var(--border-color);">
-            <h2 style="margin-bottom: 1rem;">Reflect</h2>
-            <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 1.1rem;">What part of your week would you like to understand better?</p>
-            <button class="btn btn-primary" disabled title="Reflection engine will be available in Phase 9">Start Reflection Session</button>
-        </div>
     {% endif %}
 </div>
 {% endblock %}

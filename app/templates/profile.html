@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Space - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container page-enter" style="max-width: 600px; padding-top: 3rem; padding-bottom: 6rem;">
+    <div style="margin-bottom: 4rem; text-align: center; position: relative;">
+        <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: linear-gradient(135deg, var(--primary-light), var(--accent)); border-radius: 50%; opacity: 0.3; filter: blur(30px); z-index: -1;"></div>
+        
+        <div style="display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #fff, var(--surface-alt)); border: 4px solid #fff; color: var(--primary); font-size: 3.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); font-weight: 700; font-family: var(--font-display);">
+            {{ g.user.name[0]|upper }}
+        </div>
+        <h1 style="font-size: 3rem; color: var(--text-main); margin-bottom: 0.5rem; font-family: var(--font-display);">{{ g.user.name }}</h1>
+        <p class="text-muted" style="font-size: 1.1rem; margin: 0; font-weight: 500;">{{ g.user.email }}</p>
+        <p class="text-muted" style="font-size: 0.9rem; margin-top: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Member since {{ g.user.created_at.strftime('%Y') }}</p>
+    </div>
+
+    <div style="display: grid; gap: 2rem; grid-template-columns: 1fr;">
+        <div class="feature-card" style="padding: 3rem; border-radius: var(--radius-lg); background-color: var(--surface-color);">
+            <h3 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.5rem; font-weight: 700;">Privacy & Data</h3>
+            
+            <div style="margin-bottom: 2rem;">
+                <p style="color: var(--text-main); font-weight: 700; margin-bottom: 0.5rem; font-size: 1.2rem; font-family: var(--font-display);">Your journal is private.</p>
+                <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.6;">Your journal, reflections, and Mindy chats are encrypted. They cannot be read by anyone else.</p>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <a href="{{ url_for('reports.index') }}" class="btn btn-primary btn-lg" style="width: 100%; box-shadow: 0 8px 24px rgba(154, 156, 233, 0.4);">Generate Report</a>
+            </div>
+        </div>
+    
+        <div class="feature-card" style="padding: 3rem; border-radius: var(--radius-lg); background-color: var(--surface-color);">
+            <h3 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.5rem; font-weight: 700;">Account</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-lg" style="width: 100%;">Log Out</a>
+                <button class="btn btn-tertiary" style="width: 100%; color: #e74c3c; background-color: rgba(231, 76, 60, 0.05); border-radius: var(--radius-md); padding: 1rem;">Delete my account and data</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

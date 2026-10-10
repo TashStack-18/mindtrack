@@ -1,5 +1,6 @@
 import pytest
 from app.models.journal import JournalEntry
+from app.services.encryption_service import decrypt_text
 from app.models.tag import Tag
 
 def login(client, email='test@example.com', password='password123'):
@@ -29,10 +30,10 @@ def test_journal_create(auth_client, app):
         entry = JournalEntry.query.first()
         assert entry is not None
         assert entry.title == 'Test Entry'
-        assert entry.encrypted_content == 'This is a test journal entry.'
+        assert decrypt_text(entry.encrypted_content) == 'This is a test journal entry.'
         assert entry.mood_score == 4
         assert entry.mood_label == 'Good'
-        assert entry.tags.count() == 3
+        assert len(entry.tags) == 3
         tag_names = [t.name for t in entry.tags]
         assert 'Academics' in tag_names
         assert 'Coding' in tag_names
@@ -74,7 +75,7 @@ def test_journal_edit(auth_client, app):
     with app.app_context():
         entry = JournalEntry.query.get(entry_id)
         assert entry.title == 'New Title'
-        assert entry.encrypted_content == 'New content'
+        assert decrypt_text(entry.encrypted_content) == 'New content'
         assert entry.mood_score == 5
 
 def test_journal_delete(auth_client, app):

@@ -1,68 +1,480 @@
 {% extends 'base.html' %}
-
-{% block title %}Dashboard - MindTrack{% endblock %}
+{% from 'macros/mood.html' import render_mood %}
+{% block title %}MindTrack | Dashboard{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top: 2rem; padding-bottom: 4rem;">
-    <div style="margin-bottom: 2rem;">
-        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Good morning, {{ g.user.name }}.</h1>
-        <p class="text-muted" style="font-size: 1.1rem;">How are you feeling today?</p>
-    </div>
+<style>
+    .dash-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        padding-bottom: 6rem;
+        align-items: start;
+    }
+    
+    .col-left {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+        min-width: 0;
+    }
+    
+    .col-right {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-width: 0;
+    }
+    
+    /* Hero */
+    .dash-hero {
+        border-radius: 20px;
+        padding: 2rem 2rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 200px;
+        color: var(--text-main);
+    }
+    .hero-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to right, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 60%, transparent 100%);
+        z-index: 1;
+    }
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 420px;
+    }
+    
+    /* Mood Selector */
+    .mood-cards-container {
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+    .select-mood-card {
+        flex: 1;
+        background: var(--surface-color);
+        border-radius: 16px;
+        padding: 1rem 0.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        text-decoration: none;
+        transition: transform var(--transition-bounce), box-shadow var(--transition-fast);
+        box-shadow: var(--shadow-sm);
+        border: 2px solid transparent;
+        position: relative;
+    }
+    .select-mood-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-md);
+    }
+    .select-mood-card.m1 { background: var(--mood-1-soft); }
+    .select-mood-card.m2 { background: var(--mood-2-soft); }
+    .select-mood-card.m3 { background: var(--mood-3-soft); }
+    .select-mood-card.m4 { background: var(--mood-4-soft); }
+    .select-mood-card.m5 { background: var(--mood-5-soft); }
+    
+    .select-mood-card:hover.m1 { border-color: var(--mood-1); }
+    .select-mood-card:hover.m2 { border-color: var(--mood-2); }
+    .select-mood-card:hover.m3 { border-color: var(--mood-3); }
+    .select-mood-card:hover.m4 { border-color: var(--mood-4); }
+    .select-mood-card:hover.m5 { border-color: var(--mood-5); }
+    
+    /* 2 Col inner row */
+    .inner-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    /* Cards */
+    .dash-card {
+        background: var(--surface-color);
+        border-radius: 20px;
+        padding: 1.2rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-main);
+    }
+    .view-all {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--primary);
+        text-decoration: none;
+        background: var(--primary-light);
+        padding: 4px 10px;
+        border-radius: 12px;
+        transition: background 0.2s;
+    }
+    .view-all:hover {
+        background: var(--primary);
+        color: white;
+    }
+    
+    /* Right column specific */
+    .dash-today {
+        align-items: center;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    /* Deep Reflection Card */
+    .reflection-card {
+        background: var(--bg-gradient);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-height: 150px;
+        position: relative;
+        overflow: hidden;
+    }
+    .reflection-card::before {
+        content: '';
+        position: absolute;
+        top: -10px; right: -10px;
+        width: 100px; height: 100px;
+        background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+        opacity: 0.3;
+        z-index: 0;
+    }
+    .reflection-text {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--text-main);
+        margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 1;
+        line-height: 1.4;
+    }
+    
+    .dash-motivational {
+        border-radius: 20px;
+        padding: 1.5rem;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    .mot-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(45, 36, 56, 0.4);
+        z-index: 1;
+    }
+    .mot-text {
+        position: relative;
+        z-index: 2;
+        font-family: 'Caveat', cursive;
+        font-size: 1.8rem;
+        color: #FFFFFF;
+        text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .activity-days {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+    .activity-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .activity-circle {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+        transition: transform 0.2s;
+    }
+    .activity-circle.done { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(176, 139, 182, 0.3); }
+    .activity-circle.missed { background: #F2EBF4; color: transparent; border: 1px solid #D4C4DB; }
 
-    <!-- Mood Selector Placeholder -->
-    <div class="feature-card" style="margin-bottom: 2rem; text-align: center;">
-        <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">Record a new entry to track your mood over time.</p>
-        <a href="{{ url_for('journal.create') }}" class="btn btn-primary btn-lg">Write Today's Journal</a>
-        <a href="{{ url_for('journal.history') }}" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">View History</a>
-    </div>
+    @media (max-width: 1024px) {
+        .dash-grid { grid-template-columns: 1fr; }
+        .inner-row { grid-template-columns: 1fr; }
+    }
+</style>
 
-    <!-- Dashboard Content -->
-    <div class="features-grid">
-        <div class="feature-card">
-            <h3>Recent Entries</h3>
-            {% if recent_entries %}
-                <ul style="list-style: none; padding: 0;">
-                {% for entry in recent_entries %}
-                    <li style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                <a href="{{ url_for('journal.detail', id=entry.id) }}" style="font-weight: 600; font-size: 1.1rem;">{{ entry.title }}</a>
-                                {% if entry.sentiment_label %}
-                                    <span style="font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 10px; background-color: {% if entry.sentiment_label == 'Positive' %}var(--positive-light){% elif entry.sentiment_label == 'Negative' %}var(--destructive-light){% else %}var(--bg-color){% endif %}; color: {% if entry.sentiment_label == 'Positive' %}var(--positive){% elif entry.sentiment_label == 'Negative' %}var(--destructive){% else %}var(--text-muted){% endif %}; border: 1px solid var(--border-color);">
-                                        {{ entry.sentiment_label }}
-                                    </span>
-                                {% endif %}
-                            </div>
-                            <span style="color: var(--text-muted); font-size: 0.85rem;">{{ entry.created_at.strftime('%b %d') }}</span>
-                        </div>
-                        <p style="color: var(--text-muted); margin: 0.5rem 0 0 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ entry.encrypted_content }}</p>
-                    </li>
-                {% endfor %}
-                </ul>
-                <a href="{{ url_for('journal.history') }}" style="font-size: 0.9rem; font-weight: 500;">View all &rarr;</a>
-            {% else %}
-                <p class="text-muted" style="margin-bottom: 1rem;">No journal entries yet.</p>
-                <p class="text-muted" style="margin-bottom: 1.5rem;">Your first entry will become the starting point for your personal mood history.</p>
-                <a href="{{ url_for('journal.create') }}" class="btn btn-secondary">Write Your First Entry</a>
-            {% endif %}
+<div class="dash-grid">
+    <!-- LEFT COLUMN -->
+    <div class="col-left">
+        <!-- 1. HERO -->
+        <div class="dash-hero" style="background-image: url('{{ url_for('static', filename='img/daily/hero_' ~ hero_idx ~ '.jpg') }}'); background-size: cover; background-position: center;">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 style="font-size: 2rem; margin-bottom: 0.3rem; font-weight: 800;">{{ greeting_time }},<br><b>Tashvi ♡</b></h1>
+                <p style="font-size: 1rem; color: var(--text-main); opacity: 0.85; max-width: 320px; font-weight: 500;">How are you feeling today?<br>Your feelings matter. Take a moment for yourself.</p>
+                <div style="font-family: 'Caveat', cursive; font-size: 1.5rem; color: var(--primary); transform: rotate(-3deg); margin-top: 0.8rem; opacity: 0.9;">you got this ♡</div>
+            </div>
+        </div>
+
+        <!-- 2. MOOD SELECTOR -->
+        <div>
+            <div class="card-header" style="margin-bottom: 0.5rem;">
+                <h3 class="card-title">Select Your Mood</h3>
+            </div>
+            
+            <div class="mood-cards-container">
+                <a href="{{ url_for('journal.create', mood=1) }}" class="select-mood-card m1">
+                    {{ render_mood(1, 80) }}
+                    <div style="margin-top: 1rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; color: #7A6F8B;">Very Low</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('journal.create', mood=2) }}" class="select-mood-card m2">
+                    {{ render_mood(2, 80) }}
+                    <div style="margin-top: 1rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; color: #6C839E;">Low</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('journal.create', mood=3) }}" class="select-mood-card m3">
+                    {{ render_mood(3, 80) }}
+                    <div style="margin-top: 1rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; color: #A19385;">Okay</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('journal.create', mood=4) }}" class="select-mood-card m4">
+                    {{ render_mood(4, 80) }}
+                    <div style="margin-top: 1rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; color: #8C7069;">Good</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('journal.create', mood=5) }}" class="select-mood-card m5">
+                    {{ render_mood(5, 80) }}
+                    <div style="margin-top: 1rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase; color: #9A697A;">Great</div>
+                    </div>
+                </a>
+            </div>
         </div>
         
-        <div class="feature-card">
-            <h3>Recent Insight</h3>
-            {% if dashboard_insight %}
-                <div style="background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
-                    <h4 style="font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 0.8rem; letter-spacing: 0.05em;">{{ dashboard_insight.type|replace('_', ' ')|title }}</h4>
-                    <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 1rem;">{{ dashboard_insight.title }}</p>
-                    <a href="{{ url_for('insights.index') }}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">View Insights</a>
+        <!-- 3. DEEP REFLECTION -->
+        <div class="reflection-card">
+            <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 1rem; position: relative; z-index: 1;">Daily Insight</h3>
+            <div class="reflection-text">
+                "{{ reflection_prompt }}"
+            </div>
+            <a href="{{ url_for('journal.create') }}?reflection=true" class="btn btn-primary" style="position: relative; z-index: 1;">
+                Reflect Now
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+        </div>
+
+        <!-- 4. JOURNEY & MOMENTS -->
+        <div class="inner-row">
+            <!-- JOURNEY -->
+            <div class="dash-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        Your Journey
+                    </h3>
                 </div>
-            {% else %}
-                <p class="text-muted" style="margin-bottom: 1.5rem;">You'll see insights here once you start journaling.</p>
-                <a href="{{ url_for('insights.index') }}" class="btn btn-secondary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">Go to Insights</a>
-            {% endif %}
+                <div style="height: 160px; position: relative;">
+                    {% if entry_count > 0 %}
+                        <canvas id="moodChart"></canvas>
+                    {% else %}
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--text-muted);">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;">{{ render_mood(3, 40) }}</div>
+                            <p style="font-size: 0.9rem;">Your recorded moods will<br>appear here as you check in.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- MOMENTS -->
+            <div class="dash-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Recent Moments
+                    </h3>
+                    <a href="{{ url_for('journal.history') }}" class="view-all">View All</a>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem; overflow-y: auto; max-height: 200px; padding-right: 0.5rem;">
+                    {% if recent_entries %}
+                        {% for entry in recent_entries[:3] %}
+                        <a href="{{ url_for('journal.detail', id=entry.id) }}" style="display: flex; gap: 1rem; text-decoration: none; padding: 0.5rem; border-radius: 12px; transition: background 0.2s;">
+                            <div style="flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));">{{ render_mood(entry.mood_score, 36) }}</div>
+                            <div style="flex-grow: 1; min-width: 0; padding-top: 2px;">
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ entry.title }}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">{{ entry.created_at.strftime('%A, %I:%M %p') }}</div>
+                            </div>
+                            <div style="color: var(--secondary); align-self: center;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-top: 2rem;">No entries yet. Write your first reflection.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-right">
+        <!-- 5. TODAY'S CHECK-IN -->
+        <div class="dash-card dash-today">
+            <h3 class="card-title" style="margin-bottom: 0.5rem; justify-content: center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Today's Check-in
+            </h3>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">How are you feeling today?</p>
             
-            <h3 style="margin-top: 2rem;">Statistics</h3>
-            <p class="text-muted">Record at least 3 entries to start seeing patterns.</p>
+            {% if checked_in_today %}
+                <a href="{{ url_for('journal.detail', id=today_entry.id) }}" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-alt); padding: 1.2rem; border-radius: var(--radius-sm); text-decoration: none; width: 100%; border: 1px solid var(--primary-light); transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        {{ render_mood(today_entry.mood_score, 32) }}
+                        <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Checked in</span>
+                    </div>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            {% else %}
+                <a href="{{ url_for('journal.create') }}" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-color); padding: 1.2rem; border-radius: var(--radius-sm); text-decoration: none; width: 100%; border: 2px dashed var(--secondary); transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width:32px; height:32px; border-radius:50%; background:var(--primary-light); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:16px; font-weight:bold;">+</div>
+                        <span style="font-weight: 600; color: var(--text-muted); font-size: 0.95rem;">Not checked in yet</span>
+                    </div>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- 6. ACTIVITY -->
+        <div class="dash-card">
+            <div class="card-header" style="margin-bottom: 0;">
+                <h3 class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M17.5 19c2.5 0 4.5-2 4.5-4.5a4.5 4.5 0 0 0-4.5-4.5c-1 0-2 .25-2.75.75-.75-1.5-2.5-2.5-4.5-2.5-2.75 0-5 2.25-5 5v5.5"></path><path d="M2 12h4l2-3"></path></svg>
+                    Weekly Activity
+                </h3>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 1rem 0;">{% if entry_count > 0 %}{{ entry_count }} total entries{% else %}Start checking in today!{% endif %}</p>
+            
+            <div class="activity-days">
+                {% for day in this_week %}
+                    <div class="activity-day">
+                        {% if day.entry %}
+                            <div class="activity-circle done"></div>
+                        {% else %}
+                            <div class="activity-circle missed"></div>
+                        {% endif %}
+                        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">{{ day.day_name[0] }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 7. MOTIVATIONAL CARD -->
+        <div class="dash-motivational" style="background-image: url('{{ url_for('static', filename='img/daily/mot_' ~ mot_idx ~ '.jpg') }}'); background-size: cover; background-position: center;">
+            <div class="mot-overlay"></div>
+            {% set phrases = [
+                "Better days are coming ♡",
+                "Take it one moment at a time.",
+                "Small steps still count.",
+                "Be gentle with yourself today.",
+                "One day at a time ♡",
+                "There's still something good ahead."
+            ] %}
+            <div class="mot-text">{{ phrases[(mot_idx|int - 1) % phrases|length] }}</div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if entry_count > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('moodChart');
+    if(ctx) {
+{% set chart_labels = [] %}
+{% set chart_scores = [] %}
+{% for entry in all_entries[:7]|reverse %}
+    {% set _ = chart_labels.append(entry.created_at.strftime('%a, %b %d')) %}
+    {% set _ = chart_scores.append(entry.mood_score) %}
+{% endfor %}
+const labels = {{ chart_labels | tojson | safe }};
+const data = {{ chart_scores | tojson | safe }};
+
+if (labels.length > 0) {
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Mood',
+                data: data,
+                borderColor: '#B08BB6',
+                backgroundColor: 'rgba(176, 139, 182, 0.15)',
+                borderWidth: 3,
+                pointBackgroundColor: '#B08BB6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { display: false, min: 0.5, max: 5.5 },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: "'Inter', sans-serif", size: 11, weight: '500' }, color: '#8F7D96' }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
+}
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

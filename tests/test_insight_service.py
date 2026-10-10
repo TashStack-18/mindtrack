@@ -7,6 +7,7 @@ class MockJournalEntry:
         self.mood_score = mood
         self.sentiment_polarity = sentiment_polarity
         self.detected_themes = [DetectedTheme(theme_name=t) for t in themes]
+        self.feelings = []
         # Just mock created_at as an int for simple sorting testing
         self.created_at = 1
 

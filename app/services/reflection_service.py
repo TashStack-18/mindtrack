@@ -1,17 +1,20 @@
 import re
 from app.models.theme import DetectedTheme
 
+ABSOLUTE_WORDS = ["always", "never", "everyone", "nobody", "nothing", "everything"]
+
 def generate_prompt(entry):
     """
     Generates a single CBT-inspired reflection prompt based on journal data.
     Uses a deterministic priority system.
     """
     text = entry.encrypted_content or ""
+    if isinstance(text, bytes):
+        text = text.decode('utf-8', errors='ignore')
     text_lower = text.lower()
     
     # 1. Absolute-language/evidence check
-    absolutes = ["always", "never", "everyone", "nobody", "nothing", "everything"]
-    if any(word in text_lower for word in absolutes):
+    if any(word in text_lower for word in ABSOLUTE_WORDS):
         return "Your entry uses an absolute statement. What experiences support that thought, and are there exceptions?"
         
     # 2. Strongly negative sentiment -> self-compassion or evidence reflection

@@ -5,3 +5,4 @@ from app.models.journal import JournalEntry
 from app.models.reflection import Reflection
 from app.models.report import Report
 from app.models.theme import DetectedTheme
+from app.models.mindy import MindyConversation, MindyMessage

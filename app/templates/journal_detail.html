@@ -1,110 +1,113 @@
 {% extends 'base.html' %}
+{% from 'macros/mood.html' import render_mood %}
 
 {% block title %}{{ entry.title }} - MindTrack{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
-    <div style="margin-bottom: 1.5rem;">
-        <a href="{{ url_for('journal.history') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-weight: 500;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<!-- Mood Colored Header Band -->
+<div style="background: var(--mood-{{ entry.mood_score }}-soft); width: 100%; height: 350px; position: absolute; top: 0; left: 0; z-index: -1;"></div>
+
+<div class="container page-enter" style="max-width: 800px; padding-top: 3rem; padding-bottom: 6rem; position: relative; z-index: 1;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('journal.history') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-main); font-weight: 600; text-decoration: none; transition: opacity 0.2s; opacity: 0.8;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            Back to Journal
+            Back to your story
         </a>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: 12px; text-align: center; font-weight: 600;">
                     {{ message }}
                 </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
 
-    <div class="feature-card" style="padding: 2.5rem; margin-bottom: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <h1 style="margin-bottom: 0.5rem;">{{ entry.title }}</h1>
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">{{ entry.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
-            </div>
-            <div style="background-color: var(--positive-light); color: var(--positive); padding: 0.4rem 1rem; border-radius: 20px; font-weight: 600;">
-                Mood: {{ entry.mood_score }} - {{ entry.mood_label }}
-            </div>
-        </div>
-
-        {% if entry.tags.count() > 0 %}
-        <div style="margin-bottom: 2rem;">
-            <h4 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em;">Your Context</h4>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                {% for tag in entry.tags %}
-                <span style="background-color: var(--primary-light); color: var(--primary); padding: 0.3rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">{{ tag.name }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
+    <div class="journal-detail-card" style="background: var(--surface-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: 3rem;">
         
-        {% if entry.detected_themes|length > 0 %}
-        <div style="margin-bottom: 2rem;">
-            <h4 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em;">Detected Themes</h4>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">{{ entry.created_at.strftime('%A, %B %d, %Y') }}</p>
+            
+            <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 2rem; line-height: 1.2;">{{ entry.title }}</h1>
+            
+            <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 0.8rem;">
+                {{ render_mood(entry.mood_score, size=64) }}
+                <span style="color: var(--text-main); font-weight: 700; font-size: 1.1rem;">{{ entry.mood_label }}</span>
+            </div>
+        </div>
+
+        <div style="font-size: 1.25rem; line-height: 1.9; color: var(--text-main); font-family: var(--font-display); font-weight: 500; margin-bottom: 4rem; white-space: pre-wrap; opacity: 0.9;">{{ decrypted_content }}</div>
+
+        <!-- Meta Layer (Feelings & Tags) -->
+        <div style="margin-bottom: 4rem; text-align: center;">
+            <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center;">
+                {% if entry.feelings %}
+                    {% for f in entry.feelings %}
+                        <span style="color: var(--text-main); padding: 0.5rem 1.2rem; border-radius: var(--radius-pill); font-weight: 700; font-size: 0.95rem; background-color: var(--surface-alt); border: 1px solid var(--border-color);">{{ f }}</span>
+                    {% endfor %}
+                {% endif %}
+                
+                {% for tag in entry.tags %}
+                <span style="color: var(--text-main); padding: 0.5rem 1.2rem; border-radius: var(--radius-pill); font-weight: 600; font-size: 0.95rem; background-color: var(--bg-color);">{{ tag.name }}</span>
+                {% endfor %}
+                
                 {% for theme in entry.detected_themes %}
-                <span style="background-color: var(--accent-light); color: var(--accent); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;" title="Detected based on keywords in your journal entry.">{{ theme.theme_name }}</span>
+                <span style="color: var(--primary); padding: 0.5rem 1.2rem; border-radius: var(--radius-pill); font-weight: 700; font-size: 0.95rem; background-color: var(--primary-light);">★ {{ theme.theme_name }}</span>
                 {% endfor %}
             </div>
         </div>
+
+        {% if entry.reflections and entry.reflections|length > 0 %}
+            {% set ref = entry.reflections[0] %}
+            {% if ref.response_encrypted %}
+                <div style="background: var(--primary-light); padding: 3rem; border-radius: var(--radius-lg); margin-bottom: 3rem;">
+                    <p style="color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; font-size: 0.9rem; margin-bottom: 1.5rem;">Reflection</p>
+                    <p style="color: var(--primary); margin-bottom: 1.5rem; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.01em;">"{{ ref.prompt }}"</p>
+                    <div style="background: var(--surface-color); padding: 1.5rem; border-radius: var(--radius-md);">
+                        <p style="color: var(--text-main); font-weight: 500; font-size: 1.1rem; line-height: 1.8; white-space: pre-wrap; margin: 0;">{{ decrypted_reflection if decrypted_reflection else '[Encrypted Content]' }}</p>
+                    </div>
+                </div>
+            {% endif %}
         {% endif %}
 
-        <div style="font-size: 1.1rem; line-height: 1.8; color: var(--text-main); margin-bottom: 3rem; white-space: pre-wrap;">{{ entry.encrypted_content }}</div>
-
-        <div style="display: flex; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-            <a href="{{ url_for('journal.reflect', id=entry.id) }}" class="btn btn-primary">Reflect on this</a>
-            <a href="{{ url_for('journal.edit', id=entry.id) }}" class="btn btn-secondary">Edit Entry</a>
-            <form action="{{ url_for('journal.delete', id=entry.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this entry?');">
+        <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; padding-top: 2rem; border-top: 1px solid var(--border-color); flex-wrap: wrap;">
+            <a href="{{ url_for('journal.edit', id=entry.id) }}" class="btn btn-outline" style="border-radius: var(--radius-pill);">Edit</a>
+            {% if not entry.reflections or entry.reflections|length == 0 or not entry.reflections[0].response_encrypted %}
+            <a href="{{ url_for('journal.reflect', id=entry.id) }}" class="btn btn-primary" style="font-weight: 700; padding: 0.8rem 2rem; border-radius: var(--radius-pill); box-shadow: var(--shadow-floating);">✨ Reflect on this</a>
+            {% endif %}
+            <form action="{{ url_for('journal.delete', id=entry.id) }}" method="post" onsubmit="return confirm('Are you sure you want to let this thought go? It cannot be undone.');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <button type="submit" class="btn btn-secondary" style="color: var(--destructive);">Delete Entry</button>
+                <button type="submit" class="btn" style="background: transparent; color: var(--text-muted); font-size: 0.95rem; font-weight: 600; padding: 0.8rem; text-decoration: underline;">Discard</button>
             </form>
         </div>
     </div>
-
-    <!-- Sentiment Analysis -->
-    <div class="feature-card" style="padding: 2rem; background-color: var(--surface-color); border: 1px solid var(--border-color);">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <h3 style="margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;">Text Sentiment</h3>
-                <h2 style="margin: 0; font-size: 1.8rem; color: {% if entry.sentiment_label == 'Positive' %}var(--positive){% elif entry.sentiment_label == 'Negative' %}var(--destructive){% else %}var(--text-main){% endif %};">{{ entry.sentiment_label }}</h2>
-            </div>
-            
-            <div style="display: flex; gap: 2rem;">
-                <div>
-                    <span style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.2rem;">Polarity</span>
-                    <span style="font-weight: 600; font-size: 1.2rem;">{{ "%.2f"|format(entry.sentiment_polarity) if entry.sentiment_polarity is not none else '0.00' }}</span>
+    
+    <div style="margin-top: 3rem; text-align: center;">
+        <details style="cursor: pointer; display: inline-block;">
+            <summary style="color: var(--text-muted); font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; outline: none; margin-bottom: 1rem;">View Text Analysis</summary>
+            <div style="padding: 2rem; background-color: var(--surface-color); border-radius: var(--radius-lg); margin-top: 1rem; text-align: left; box-shadow: var(--shadow-sm);">
+                <p style="color: var(--text-main); font-weight: 500; margin-bottom: 1.5rem; font-size: 1rem; text-align: center;">
+                    Language detected as <span style="font-weight: 800; color: var(--primary);">{{ entry.sentiment_label|lower }}</span>
+                </p>
+                
+                {% set polarity_pct = ((entry.sentiment_polarity or 0) + 1) * 50 %}
+                <div style="max-width: 300px; margin: 0 auto;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <span>Negative</span>
+                        <span>Positive</span>
+                    </div>
+                    <div style="width: 100%; height: 12px; background-color: var(--bg-color); border-radius: 6px; overflow: hidden; position: relative;">
+                        <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: var(--border-color); z-index: 2;"></div>
+                        <div style="height: 100%; width: {{ polarity_pct }}%; background: linear-gradient(90deg, #A89CB8, var(--primary)); border-radius: 6px;"></div>
+                    </div>
                 </div>
-                <div>
-                    <span style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.2rem;">Subjectivity</span>
-                    <span style="font-weight: 600; font-size: 1.2rem;">{{ "%.2f"|format(entry.sentiment_subjectivity) if entry.sentiment_subjectivity is not none else '0.00' }}</span>
-                </div>
             </div>
-        </div>
-        
-        <!-- Sentiment Bar -->
-        {% set polarity_pct = ((entry.sentiment_polarity or 0) + 1) * 50 %}
-        <div style="margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                <span>Negative</span>
-                <span>Neutral</span>
-                <span>Positive</span>
-            </div>
-            <div style="height: 6px; background: linear-gradient(to right, var(--destructive-light), var(--bg-color), var(--positive-light)); border-radius: 3px; position: relative;">
-                <div style="position: absolute; left: {{ polarity_pct }}%; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background-color: var(--primary); border-radius: 50%; border: 2px solid white; box-shadow: var(--shadow-sm);"></div>
-            </div>
-        </div>
-
-        <p class="text-muted" style="margin: 0; font-size: 0.95rem;">
-            "The language in this entry was classified as mostly {{ entry.sentiment_label|lower }} by the text-analysis model."
-        </p>
+        </details>
     </div>
 </div>
 {% endblock %}

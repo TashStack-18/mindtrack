@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, g
 from datetime import datetime, timedelta
-from app.utils.decorators import login_required
+from app.routes.auth import login_required
 from app.models.journal import JournalEntry
 from app.services.insight_service import generate_insights
 
@@ -26,4 +26,4 @@ def index():
     entries = query.order_by(JournalEntry.created_at.desc()).all()
     insights = generate_insights(entries, range_label)
     
-    return render_template('insights.html', insights=insights, current_range=date_range, entry_count=len(entries))
+    return render_template('insights.html', insights=insights, current_range=date_range, entry_count=len(entries), entries=entries)

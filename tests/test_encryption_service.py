@@ -35,8 +35,9 @@ def test_wrong_key_decryption_failure(app):
         original = "My secret"
         encrypted = encrypt_text(original)
         
-    # Change key temporarily to simulate failure
-    app.config['MINTRACK_ENCRYPTION_KEY'] = 'wrongkeythatisinvalidbase64='
+    # Change key temporarily to simulate failure (must be valid 32 url-safe base64 encoded bytes)
+    import base64
+    app.config['MINTRACK_ENCRYPTION_KEY'] = base64.urlsafe_b64encode(b'A'*32).decode('utf-8')
     with app.app_context():
         with pytest.raises(ValueError, match="Failed to decrypt"):
             decrypt_text(encrypted)

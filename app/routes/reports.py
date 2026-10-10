@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, g, send_file, flash, redirect, url_for
 from datetime import datetime, timedelta
-from app.utils.decorators import login_required
+from app.routes.auth import login_required
 from app.models.journal import JournalEntry
 from app.models.report import Report
 from app.services.report_service import generate_pdf_report
@@ -10,8 +10,15 @@ bp = Blueprint('reports', __name__, url_prefix='/reports')
 @bp.route('/', methods=['GET'])
 @login_required
 def index():
+    from app.models.mindy import MindyConversation, MindyMessage
     past_reports = Report.query.filter_by(user_id=g.user.id).order_by(Report.created_at.desc()).all()
-    return render_template('reports.html', past_reports=past_reports)
+    mindy_convs = MindyConversation.query.filter_by(user_id=g.user.id, status='completed').order_by(MindyConversation.completed_at.desc()).all()
+    
+    # Let's count messages for each conv
+    for c in mindy_convs:
+        c.message_count = MindyMessage.query.filter_by(conversation_id=c.id).count()
+        
+    return render_template('reports.html', past_reports=past_reports, mindy_convs=mindy_convs)
 
 @bp.route('/generate', methods=['POST'])
 @login_required
@@ -48,3 +55,26 @@ def generate():
     except Exception as e:
         flash('An error occurred while generating the report.', 'error')
         return redirect(url_for('reports.index'))
+
+@bp.route('/mindy/<int:conv_id>', methods=['GET'])
+@login_required
+def mindy_conversation(conv_id):
+    from app.models.mindy import MindyConversation, MindyMessage
+    from app.services.encryption_service import decrypt_text
+    
+    conv = MindyConversation.query.filter_by(id=conv_id, user_id=g.user.id).first_or_404()
+    messages_db = MindyMessage.query.filter_by(conversation_id=conv.id).order_by(MindyMessage.created_at.asc()).all()
+    
+    messages = []
+    for m in messages_db:
+        try:
+            dec = decrypt_text(m.encrypted_message)
+            messages.append({
+                'sender': m.sender,
+                'text': dec,
+                'time': m.created_at.strftime('%I:%M %p')
+            })
+        except:
+            pass
+            
+    return render_template('mindy_conversation.html', conversation=conv, messages=messages)

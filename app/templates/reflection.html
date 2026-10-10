@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Reflection - MindTrack{% endblock %}
+{% block title %}Reflect - MindTrack{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
-    <div style="margin-bottom: 1.5rem;">
-        <a href="{{ url_for('journal.detail', id=entry.id) }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-weight: 500;">
+<div class="container" style="max-width: 800px; padding-top: 3rem; padding-bottom: 6rem;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('journal.detail', id=entry.id) }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-weight: 500; text-decoration: none; transition: color var(--transition-fast);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
@@ -17,38 +17,44 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 2rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %}; text-align: center;">
                     {{ message }}
                 </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
 
-    <div class="feature-card" style="padding: 2.5rem; margin-bottom: 2rem;">
-        <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
-            <h1 style="margin-bottom: 0.5rem; font-size: 1.4rem; color: var(--text-muted);">{{ entry.title }}</h1>
-            <div style="display: inline-block; background-color: var(--positive-light); color: var(--positive); padding: 0.2rem 0.8rem; border-radius: 12px; font-weight: 600; font-size: 0.85rem;">
-                Mood: {{ entry.mood_score }}
+    <div style="background-color: transparent; padding: 0; border: none; max-width: 600px; margin: 0 auto;">
+        
+        <!-- Chat Prompt -->
+        <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 3rem;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;" class="motif-sparkle">
+                ✦
+            </div>
+            <div style="background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg); box-shadow: var(--shadow-sm);">
+                <p style="color: var(--primary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; font-weight: 600;">Reflection Prompt</p>
+                <p style="font-size: 1.2rem; line-height: 1.6; color: var(--text-main); margin: 0;">{{ prompt }}</p>
             </div>
         </div>
-        
-        <h2 style="font-size: 1.1rem; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">A Moment to Reflect</h2>
-        
-        <p style="font-size: 1.4rem; line-height: 1.5; color: var(--text-main); font-weight: 500; margin-bottom: 2rem;">
-            "{{ prompt }}"
-        </p>
 
-        <form method="post" action="{{ url_for('journal.reflect', id=entry.id) }}">
+        <!-- Chat Response -->
+        <form method="post" action="{{ url_for('journal.reflect', id=entry.id) }}" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div style="margin-bottom: 1.5rem;">
-                <textarea name="response_text" rows="6" placeholder="Write your reflection... (optional)"
-                          style="width: 100%; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1.05rem; resize: vertical; line-height: 1.6; background-color: var(--surface-color);">{{ reflection.response_encrypted if reflection and reflection.response_encrypted else '' }}</textarea>
+            <div style="margin-bottom: 1.5rem; width: 100%;">
+                <textarea name="response_text" rows="6" placeholder="Your turn..."
+                          style="width: 100%; padding: 1.5rem; border: 1px solid var(--primary); border-radius: var(--radius-lg) 0 var(--radius-lg) var(--radius-lg); font-family: inherit; font-size: 1.1rem; resize: vertical; line-height: 1.6; background-color: var(--primary-light); box-shadow: 0 4px 15px rgba(154, 156, 233, 0.2); transition: transform var(--transition-fast); outline: none;"></textarea>
+                <script>
+                    document.querySelector('textarea[name="response_text"]').value = `{{ decrypted_response }}`;
+                </script>
             </div>
             
-            <div style="display: flex; gap: 1rem;">
-                <button type="submit" class="btn btn-primary btn-lg">Save Reflection</button>
-            </div>
+            <button type="submit" class="btn btn-primary btn-lg" style="box-shadow: 0 4px 15px rgba(154, 156, 233, 0.4);">✨ Save your thoughts</button>
         </form>
     </div>
 </div>
+<style>
+    textarea[name="response_text"]:focus {
+        transform: scale(1.02);
+    }
+</style>
 {% endblock %}

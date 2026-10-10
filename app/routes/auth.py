@@ -61,6 +61,25 @@ def login():
         if error is None:
             session.clear()
             session['user_id'] = user.id
+            
+            import random
+            # Select new hero index from 1 to 30, avoiding the last used
+            hero_choices = [i for i in range(1, 31) if i != user.last_hero_idx]
+            new_hero = random.choice(hero_choices) if hero_choices else 1
+            
+            # Select new mot index from 1 to 30, avoiding the last used and the new hero
+            mot_choices = [i for i in range(1, 31) if i != user.last_mot_idx and i != new_hero]
+            if not mot_choices:
+                mot_choices = [i for i in range(1, 31) if i != user.last_mot_idx]
+            new_mot = random.choice(mot_choices) if mot_choices else 2
+            
+            session['hero_idx'] = new_hero
+            session['mot_idx'] = new_mot
+            
+            user.last_hero_idx = new_hero
+            user.last_mot_idx = new_mot
+            db.session.commit()
+            
             return redirect(url_for('dashboard.index'))
 
         flash(error, 'error')
@@ -71,3 +90,8 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('dashboard.index'))
+
+@bp.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')

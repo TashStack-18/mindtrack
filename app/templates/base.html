@@ -3,64 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}MindTrack | Explainable, Privacy-First Mood Intelligence{% endblock %}</title>
     
-    <!-- Fonts: Inter -->
+    <!-- Fonts: Nunito & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if g.user %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mindy.css') }}">
+    {% endif %}
 </head>
 <body>
-    <header class="navbar">
-        <div class="container navbar-inner">
-            <a href="{{ url_for('dashboard.index') }}" class="brand-logo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                </svg>
-                MindTrack
+    {% include 'partials/mood_symbols.html' %}
+    
+    <div class="app-layout">
+        <!-- Desktop Sidebar -->
+        <aside class="desktop-sidebar">
+            <a href="{{ url_for('dashboard.index') }}" class="sidebar-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                <div>
+                    MindTrack
+                    <span>Better Mind ✦ Brighter You</span>
+                </div>
             </a>
-            <nav class="nav-links">
+            
+            <nav class="sidebar-nav">
                 {% if g.user %}
-                    <a href="{{ url_for('dashboard.dashboard_view') }}" class="nav-link">Dashboard</a>
-                    <a href="#" class="nav-link">Insights</a>
-                    <a href="#" class="nav-link">Reflections</a>
-                    <div style="width: 1px; height: 24px; background-color: var(--border-color); margin: 0 0.5rem;"></div>
-                    <span class="nav-link" style="color: var(--primary); font-weight: 600;">{{ g.user.name }}</span>
-                    <a href="{{ url_for('auth.logout') }}" class="nav-link">Log Out</a>
+                    <a href="{{ url_for('dashboard.dashboard_view') }}" class="sidebar-link {% if request.endpoint == 'dashboard.dashboard_view' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        Home
+                    </a>
+                    <a href="{{ url_for('journal.history') }}" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('journal') and request.endpoint != 'journal.create' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                        Journal
+                    </a>
+                    <a href="{{ url_for('insights.index') }}" class="sidebar-link {% if request.endpoint == 'insights.index' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                        Insights
+                    </a>
+                    <a href="{{ url_for('reports.index') }}" class="sidebar-link {% if request.endpoint == 'reports.index' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Reports
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="sidebar-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        Settings
+                    </a>
                 {% else %}
-                    <a href="#how-it-works" class="nav-link">How It Works</a>
-                    <a href="{{ url_for('auth.login') }}" class="nav-link">Log In</a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Start Journaling</a>
+                    <a href="{{ url_for('auth.login') }}" class="sidebar-link">Log In</a>
+                    <a href="{{ url_for('auth.register') }}" class="sidebar-link active">Start Journaling</a>
                 {% endif %}
             </nav>
-        </div>
-    </header>
-
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="footer">
-        <div class="container footer-inner">
-            <div class="footer-brand">
-                <span class="brand-logo">MindTrack</span>
-                <p class="footer-tagline">Understand your patterns. Reflect with intention.</p>
+            <div class="sidebar-footer">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--secondary);">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                </svg>
+                <p>Small steps<br>make big changes ♡</p>
             </div>
-            <div class="footer-links">
-                <a href="/privacy">Privacy Vault</a>
-                <a href="/terms">Terms</a>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Desktop Topbar -->
+            <header class="desktop-topbar">
+                <div class="topbar-search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" placeholder="Search your thoughts...">
+                </div>
+                
+                <div class="topbar-right">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted); cursor: pointer;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    {% if g.user %}
+                    <div class="topbar-profile" onclick="window.location.href='{{ url_for('auth.profile') }}'">
+                        <span>{{ g.user.name.split(' ')[0] }}</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <img src="https://ui-avatars.com/api/?name={{ g.user.name }}&background=D9CDE8&color=4A3B52" alt="Profile">
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- Mobile Topbar -->
+            <header class="mobile-topbar">
+                <a href="{{ url_for('dashboard.index') }}" class="brand-logo" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    MindTrack
+                </a>
+                <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Open menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+            </header>
+
+            <main class="main-content">
+                {% block content %}{% endblock %}
+            </main>
+
+    <style>
+        .mindtrack-footer {
+            margin-top: auto;
+            padding: 4rem 0 2rem;
+            border-top: 1px solid var(--border-color, #eaeaea);
+        }
+        .mindtrack-footer-content {
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+        .mindtrack-footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        .mindtrack-footer-brand h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main, #2A313C);
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.01em;
+        }
+        .mindtrack-footer-brand p {
+            font-size: 0.95rem;
+            color: var(--text-muted, #666);
+            line-height: 1.5;
+            margin: 0;
+            max-width: 320px;
+        }
+        .mindtrack-footer-links {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .mindtrack-footer-links a {
+            color: var(--text-muted, #666);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-weight: 500;
+        }
+        .mindtrack-footer-links a:hover {
+            color: var(--text-main, #000);
+        }
+        .mindtrack-footer-bottom {
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mindtrack-footer-copyright {
+            color: #999;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        @media (max-width: 600px) {
+            .mindtrack-footer-top {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <footer style="background-color: var(--primary-light); padding: 4rem 2rem 2rem 2rem; border-top: 1px solid var(--border-color); margin-top: auto;">
+        <div class="container" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2rem;">
+            <div style="color: var(--primary);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem;">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                <h2 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: var(--primary);">MindTrack</h2>
+                <p style="font-size: 0.95rem; font-weight: 500; max-width: 400px; margin: 0 auto; opacity: 0.8;">A private space for reflection, journaling, and understanding your feelings.</p>
             </div>
-        </div>
-        <div class="container footer-copyright">
-            <p>&copy; 2026 MindTrack. A privacy-first self-reflection tool.</p>
+            
+            <div style="background: rgba(255,255,255,0.5); padding: 1.5rem 2rem; border-radius: var(--radius-lg); max-width: 600px; width: 100%;">
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 700; color: var(--primary);">Need support right now?</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">MindTrack is not a clinical tool. If you're experiencing a mental health crisis, please contact your local emergency services or a crisis helpline immediately.</p>
+            </div>
+            
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; font-size: 0.9rem; font-weight: 600;">
+                <a href="#" style="color: var(--primary); text-decoration: none;">Privacy & Security</a>
+                <a href="#" style="color: var(--primary); text-decoration: none;">Terms of Service</a>
+                <a href="#" style="color: var(--primary); text-decoration: none;">Your Data</a>
+            </div>
+            
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem; opacity: 0.7;">&copy; 2026 MindTrack. All data is encrypted locally.</p>
         </div>
     </footer>
+    </div> <!-- End Main Wrapper -->
+    </div> <!-- End App Layout -->
 
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            const closeBtn = document.getElementById('mobile-close-btn');
+            const drawer = document.getElementById('mobile-drawer');
+            const overlay = document.getElementById('mobile-overlay');
+
+            function toggleMenu() {
+                const isOpen = drawer.classList.contains('open');
+                if (isOpen) {
+                    drawer.classList.remove('open');
+                    overlay.classList.remove('open');
+                } else {
+                    drawer.classList.add('open');
+                    overlay.classList.add('open');
+                }
+            }
+
+            if(menuBtn) menuBtn.addEventListener('click', toggleMenu);
+            if(closeBtn) closeBtn.addEventListener('click', toggleMenu);
+            if(overlay) overlay.addEventListener('click', toggleMenu);
+        });
+    </script>
+    {% if g.user %}
+    {% include 'partials/mindy.html' %}
+    <script src="{{ url_for('static', filename='js/mindy.js') }}"></script>
+    {% endif %}
     {% block scripts %}{% endblock %}
 </body>
 </html>

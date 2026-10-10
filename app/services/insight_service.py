@@ -63,7 +63,29 @@ def generate_insights(entries, date_range_label="All time"):
                         "reflection_hook": theme.lower()
                     })
 
-    # 2. Trends (needs >= 6 entries)
+    # 2. Frequent Feelings (needs >= 3 entries)
+    if num_entries >= 3:
+        feeling_counts = {}
+        for entry in entries:
+            for f in entry.feelings:
+                feeling_counts[f] = feeling_counts.get(f, 0) + 1
+                
+        for feeling, count in feeling_counts.items():
+            # If a feeling appears in at least 3 entries
+            if count >= 3:
+                insights.append({
+                    "type": "frequent_feeling",
+                    "title": f"You chose {feeling.capitalize()} on several recent entries.",
+                    "description": f"You recorded feeling {feeling} in {count} of your last {num_entries} entries.",
+                    "why": [
+                        f"Selected in {count} entries",
+                        f"Selected period: {date_range_label}"
+                    ],
+                    "severity": "info",
+                    "reflection_hook": feeling.lower()
+                })
+
+    # 3. Trends (needs >= 6 entries)
     if num_entries >= 6:
         # Sort chronologically for trend comparison (assuming input is reverse-chron or chron, let's ensure chron)
         chron_entries = sorted(entries, key=lambda e: e.created_at)

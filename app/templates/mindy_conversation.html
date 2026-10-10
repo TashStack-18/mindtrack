@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ conversation.title }} - MindTrack{% endblock %}
+
+{% block content %}
+<div class="container page-enter" style="max-width: 800px; padding-top: 3rem; padding-bottom: 6rem;">
+    <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+        <a href="{{ url_for('reports.index') }}" class="btn btn-secondary" style="border-radius: 20px;">&larr; Back to Reports</a>
+    </div>
+
+    <div style="background: var(--surface-color); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+        <h1 style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--text-main);">{{ conversation.title }}</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">
+            {{ conversation.completed_at.strftime('%B %d, %Y') if conversation.completed_at else conversation.created_at.strftime('%B %d, %Y') }}
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for msg in messages %}
+                <div style="display: flex; flex-direction: column; {% if msg.sender == 'user' %}align-items: flex-end;{% else %}align-items: flex-start;{% endif %}">
+                    <div style="max-width: 75%; padding: 1rem 1.25rem; border-radius: 20px; 
+                        {% if msg.sender == 'user' %}
+                            background: var(--mindy-user-bubble, #EAE7F2); 
+                            color: var(--text-main); 
+                            border-bottom-right-radius: 4px;
+                        {% else %}
+                            background: var(--mindy-bot-bubble, #7B5EA7); 
+                            color: white; 
+                            border-bottom-left-radius: 4px;
+                        {% endif %}
+                    ">
+                        {{ msg.text }}
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; padding: 0 0.5rem;">
+                        {{ 'You' if msg.sender == 'user' else 'Mindy' }} &middot; {{ msg.time }}
+                    </span>
+                </div>
+            {% endfor %}
+            {% if not messages %}
+                <p style="text-align: center; color: var(--text-muted); font-style: italic;">No messages in this conversation.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

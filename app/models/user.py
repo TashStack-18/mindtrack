@@ -11,6 +11,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_hero_idx = db.Column(db.Integer, default=1)
+    last_mot_idx = db.Column(db.Integer, default=2)
 
     # Relationships
     journal_entries = db.relationship('JournalEntry', back_populates='user', cascade='all, delete-orphan')

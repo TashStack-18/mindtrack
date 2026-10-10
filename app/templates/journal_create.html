@@ -1,15 +1,18 @@
 {% extends 'base.html' %}
+{% from 'macros/mood.html' import render_mood %}
 
-{% block title %}{% if entry %}Edit Journal{% else %}Write Journal{% endif %} - MindTrack{% endblock %}
+{% block title %}{% if entry %}Edit Check-in{% else %}New Check-in{% endif %} - MindTrack{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
-    <h1 style="margin-bottom: 2rem;">{% if entry %}Edit Journal Entry{% else %}How are you feeling today?{% endif %}</h1>
-    
+<div class="container page-enter" style="max-width: 800px; padding-top: 3rem; padding-bottom: 6rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em;">How are you feeling?</h1>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); background-color: {% if category == 'error' %}var(--destructive-light){% else %}var(--positive-light){% endif %}; color: {% if category == 'error' %}var(--destructive){% else %}var(--positive){% endif %};">
+                <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 2rem; border-radius: 12px; text-align: center; font-weight: 600;">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -19,67 +22,162 @@
     <form method="post" action="{{ url_for('journal.edit', id=entry.id) if entry else url_for('journal.create') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
-        <div class="feature-card" style="margin-bottom: 2rem;">
-            <h3 style="margin-bottom: 1rem;">Mood Score</h3>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                {% for score, label in mood_labels.items() %}
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="radio" name="mood" value="{{ score }}" required {% if entry and entry.mood_score == score %}checked{% endif %} style="transform: scale(1.2);">
-                    <span style="font-weight: 500;">{{ score }} &mdash; {{ label }}</span>
+        <!-- Step 1: Mood -->
+        <div style="margin-bottom: 4rem;">
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                {% for level in [1, 2, 3, 4, 5] %}
+                <label class="mood-radio-label" style="cursor: pointer; text-align: center;">
+                    <input type="radio" name="mood" value="{{ level }}" required {% if (entry and entry.mood_score == level) or (request.args.get('mood') == level|string) %}checked{% endif %} style="display: none;">
+                    {{ render_mood(level, size=80, css_class="interactive " ~ ("is-selected" if (entry and entry.mood_score == level) or (request.args.get('mood') == level|string) else "")) }}
                 </label>
                 {% endfor %}
             </div>
         </div>
 
-        <div class="feature-card" style="margin-bottom: 2rem;">
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 0.5rem;"><label for="title">Title (optional)</label></h3>
-                <input type="text" id="title" name="title" value="{{ entry.title if entry else '' }}" placeholder="Give your entry a title..." 
-                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
-            </div>
-
-            <div>
-                <h3 style="margin-bottom: 0.5rem;"><label for="content">What happened today?</label></h3>
-                <textarea id="content" name="content" required rows="10" placeholder="Start writing here..."
-                          style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem; resize: vertical;">{{ entry.encrypted_content if entry else '' }}</textarea>
+        <!-- Step 2: Feelings Layer -->
+        <div style="margin-bottom: 4rem; background: var(--surface-color); padding: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+            <p style="text-align: center; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.2rem;">What feelings are present? (Select up to 3)</p>
+            {% set current_feelings = entry.feelings if entry else [] %}
+            <div style="display: flex; gap: 1.5rem; justify-content: center;">
+                <div style="flex: 1; max-width: 300px;">
+                    <p style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 1rem; text-align: center;">Lighter</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+                        {% for f in ['Calm', 'Content', 'Grateful', 'Hopeful', 'Excited', 'Proud', 'Relieved', 'Energised', 'Loved'] %}
+                        <label>
+                            <input type="checkbox" name="feelings" value="{{ f }}" class="feeling-cb" style="display: none;" {% if f in current_feelings %}checked{% endif %}>
+                            <span class="chip chip-light">{{ f }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div style="width: 1px; background: var(--border-color);"></div>
+                <div style="flex: 1; max-width: 300px;">
+                    <p style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 1rem; text-align: center;">Heavier</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+                        {% for f in ['Tired', 'Stressed', 'Overwhelmed', 'Worried', 'Lonely', 'Frustrated', 'Sad', 'Restless', 'Numb', 'Disappointed'] %}
+                        <label>
+                            <input type="checkbox" name="feelings" value="{{ f }}" class="feeling-cb" style="display: none;" {% if f in current_feelings %}checked{% endif %}>
+                            <span class="chip chip-heavy">{{ f }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="feature-card" style="margin-bottom: 2rem;">
-            <h3 style="margin-bottom: 1rem;">Context Tags</h3>
-            <p class="text-muted" style="margin-bottom: 1rem;">Select tags to help MindTrack understand your patterns.</p>
-            
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-                {% set predefined_tags = ['Academics', 'Sleep', 'Friends', 'Family', 'Work', 'Exercise', 'Social', 'Finance', 'Other'] %}
+        <!-- Step 3: Context Tags -->
+        <div style="margin-bottom: 4rem; text-align: center;">
+            <p style="font-weight: 700; margin-bottom: 1.5rem; font-size: 1.2rem;">What was around you?</p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; max-width: 600px; margin: 0 auto 1.5rem auto;">
+                {% set predefined_tags = ['Academics', 'Sleep', 'Friends/Social', 'Family', 'Work', 'Exercise', 'Finance', 'Other'] %}
                 {% set current_tag_names = entry.tags|map(attribute='name')|list if entry else [] %}
-                
                 {% for t in predefined_tags %}
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; background-color: var(--bg-color); padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid var(--border-color);">
-                    <input type="checkbox" name="tags" value="{{ t }}" {% if t in current_tag_names %}checked{% endif %}>
-                    <span>{{ t }}</span>
+                <label>
+                    <input type="checkbox" name="tags" value="{{ t }}" style="display: none;" {% if t in current_tag_names %}checked{% endif %}>
+                    <span class="chip chip-context">{{ t }}</span>
                 </label>
                 {% endfor %}
             </div>
+            {% set custom_t = [] %}
+            {% if entry %}{% for t in current_tag_names %}{% if t not in predefined_tags %}{% set _ = custom_t.append(t) %}{% endif %}{% endfor %}{% endif %}
+            <input type="text" name="custom_tags" value="{{ custom_t|join(', ') }}" placeholder="Any custom contexts? (comma separated)" style="width: 100%; max-width: 400px; padding: 0.8rem 1.5rem; border-radius: 30px; border: 1px solid var(--border-color); background: var(--surface-color); font-size: 0.9rem; outline: none; text-align: center;">
+        </div>
 
-            <div>
-                <label for="custom_tags" style="font-weight: 500; display: block; margin-bottom: 0.5rem;">Custom Tags (comma separated)</label>
-                {% set custom_t = [] %}
-                {% if entry %}
-                    {% for t in current_tag_names %}
-                        {% if t not in predefined_tags %}
-                            {% set _ = custom_t.append(t) %}
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-                <input type="text" id="custom_tags" name="custom_tags" value="{{ custom_t|join(', ') }}" placeholder="e.g. Travel, Hobby"
-                       style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem;">
+        <!-- Step 4: Journal Entry -->
+        <div style="background: var(--surface-color); padding: 3rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
+            <input type="text" name="title" value="{{ entry.title if entry else '' }}" placeholder="Give this moment a title (optional)" style="width: 100%; font-size: 1.8rem; font-weight: 800; border: none; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 2rem; background: transparent; outline: none; font-family: var(--font-display);">
+            
+            <textarea id="journal-content" name="content" required rows="10" placeholder="Start writing here..." style="width: 100%; font-size: 1.1rem; line-height: 1.8; border: none; background: transparent; resize: vertical; outline: none; font-family: var(--font-family); min-height: 200px;"></textarea>
+            <textarea id="hidden_content_decrypted" style="display:none;">{{ decrypted_content if entry else '' }}</textarea>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                <span id="word-count" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">0 words</span>
+                <span id="prompt-rotate" style="font-size: 0.85rem; color: var(--accent); font-weight: 600; cursor: pointer;">Show prompt</span>
             </div>
         </div>
 
-        <div style="display: flex; gap: 1rem;">
-            <button type="submit" class="btn btn-primary btn-lg">{% if entry %}Update Entry{% else %}Save Entry{% endif %}</button>
-            <a href="{{ url_for('journal.history') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        <!-- Actions -->
+        <div style="display: flex; justify-content: center; gap: 1.5rem;">
+            <a href="{{ url_for('journal.history') }}" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg" style="padding: 1rem 3rem; border-radius: var(--radius-pill); font-weight: 700; box-shadow: var(--shadow-floating);">Save entry</button>
         </div>
     </form>
 </div>
+
+<style>
+    .chip {
+        display: inline-block; padding: 0.5rem 1rem; border-radius: var(--radius-pill); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; background: var(--surface-alt);
+    }
+    input:checked + .chip-light { background: var(--positive-light); color: #2A5A50; border-color: var(--positive); }
+    input:checked + .chip-heavy { background: #FDE8E8; color: #8C2A2A; border-color: #F8B4B4; }
+    input:checked + .chip-context { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+</style>
+
+{% block scripts %}
+<script>
+    // Mood Radio Sync
+    document.querySelectorAll('.mood-radio-label input').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('.mood-radio-label .mood-card-wrapper').forEach(wrapper => {
+                wrapper.classList.remove('is-selected');
+                wrapper.classList.add('dimmed');
+            });
+            if (this.checked) {
+                const wrapper = this.nextElementSibling;
+                wrapper.classList.add('is-selected');
+                wrapper.classList.remove('dimmed');
+            }
+        });
+    });
+    // Init state
+    if (!document.querySelector('.mood-radio-label input:checked')) {
+        document.querySelectorAll('.mood-radio-label .mood-card-wrapper').forEach(w => w.classList.remove('dimmed'));
+    } else {
+        document.querySelectorAll('.mood-radio-label input').forEach(radio => {
+            if(!radio.checked) radio.nextElementSibling.classList.add('dimmed');
+            else radio.nextElementSibling.classList.add('is-selected');
+        });
+    }
+
+    // Feelings limit (Max 3)
+    const feelingsCbs = document.querySelectorAll('.feeling-cb');
+    feelingsCbs.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const checked = document.querySelectorAll('.feeling-cb:checked');
+            if (checked.length > 3) {
+                this.checked = false;
+                alert('You can select a maximum of 3 feelings.');
+            }
+        });
+    });
+
+    // Content Restore & Word count
+    const contentTextarea = document.getElementById('journal-content');
+    contentTextarea.value = document.getElementById('hidden_content_decrypted').value;
+    
+    function updateWordCount() {
+        const text = contentTextarea.value.trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        document.getElementById('word-count').textContent = words === 1 ? '1 word' : words + ' words';
+    }
+    contentTextarea.addEventListener('input', updateWordCount);
+    updateWordCount();
+
+    // Rotating prompts
+    const prompts = [
+        "What's on your mind?",
+        "What went well today?",
+        "What was challenging today?",
+        "Is there something you want to remember about today?",
+        "How did you feel in your body today?"
+    ];
+    let promptIndex = 0;
+    const promptRotateBtn = document.getElementById('prompt-rotate');
+    promptRotateBtn.addEventListener('click', () => {
+        promptIndex = (promptIndex + 1) % prompts.length;
+        contentTextarea.placeholder = prompts[promptIndex];
+        promptRotateBtn.textContent = "New prompt";
+    });
+</script>
+{% endblock %}
 {% endblock %}

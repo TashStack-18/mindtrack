@@ -1,0 +1,554 @@
+/* Mindy Companion CSS */
+
+:root {
+    --mindy-primary: #403149; /* Deep Plum */
+    --mindy-primary-light: #C9B5D9; /* Muted Lavender */
+    --mindy-bg: #F8F5F9; /* Main Background */
+    --mindy-panel-bg: #FFFCF8; /* Warm Ivory */
+    --mindy-user-bubble: #E5ECF4; /* Powder Blue */
+    --mindy-bot-bubble: #F1EAF5; /* Soft Lavender Background */
+    --mindy-border: #E8C5D0; /* Muted Rose */
+    --mindy-text: #403149; /* Deep Plum */
+    --mindy-subtext: #776B80; /* Secondary Text */
+    --mindy-shadow: 0 8px 30px rgba(64, 49, 73, 0.12), 0 4px 10px rgba(64, 49, 73, 0.08);
+}
+
+.mindy-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Launcher */
+.mindy-launcher {
+    background: #FAFAFD;
+    border: 1px solid #EAE7F2;
+    border-radius: 9999px; /* Compact pill shape */
+    width: 120px;
+    height: 52px;
+    padding: 0 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    outline: none;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(123, 94, 167, 0.1);
+}
+
+.mindy-launcher::after {
+    content: "Mindy";
+    position: static;
+    opacity: 1;
+    color: var(--mindy-primary);
+    background: transparent;
+    padding: 0;
+    font-weight: 600;
+    font-size: 1rem;
+    transform: none;
+    pointer-events: none;
+    margin-top: 2px;
+}
+
+.mindy-launcher-avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.mindy-launcher-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.mindy-launcher:hover, .mindy-launcher:focus-visible {
+    box-shadow: 0 8px 24px rgba(123, 94, 167, 0.15);
+    transform: translateY(-2px);
+}
+
+.mindy-launcher:focus-visible {
+    outline: 3px solid var(--mindy-primary);
+    outline-offset: 4px;
+}
+
+.mindy-launcher:active {
+    transform: scale(0.95);
+}
+
+@media (min-width: 1024px) {
+    /* Kept for media query block but no longer needed to animate text */
+}
+
+/* Animations */
+@media (prefers-reduced-motion: no-preference) {
+    .mindy-launcher-avatar {
+        animation: mindy-float 5.5s ease-in-out infinite;
+    }
+    .mindy-launcher-avatar svg {
+        transition: transform 0.3s ease;
+    }
+    .mindy-launcher:hover .mindy-launcher-avatar svg,
+    .mindy-launcher:focus-visible .mindy-launcher-avatar svg {
+        transform: rotate(-3deg);
+    }
+    #mindy-arm-left {
+        transform-origin: 55px 165px;
+        transition: transform 0.3s ease;
+    }
+    .mindy-launcher:hover #mindy-arm-left,
+    .mindy-launcher:focus-visible #mindy-arm-left {
+        transform: rotate(15deg);
+    }
+}
+
+/* Panel */
+.mindy-panel {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 380px;
+    height: 550px;
+    max-height: calc(100vh - 120px);
+    background: var(--mindy-panel-bg);
+    border-radius: 24px;
+    box-shadow: var(--mindy-shadow);
+    border: 1px solid var(--mindy-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px) scale(0.95);
+    transform-origin: bottom right;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mindy-panel.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+/* Header */
+.mindy-header {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--mindy-bg);
+    border-bottom: 1px solid var(--mindy-border);
+}
+
+.mindy-header-avatar {
+    width: 44px;
+    height: 44px;
+    margin-right: 12px;
+}
+
+.mindy-header-text {
+    flex-grow: 1;
+}
+
+.mindy-header-text h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--mindy-text);
+}
+
+.mindy-header-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--mindy-subtext);
+}
+
+.mindy-close {
+    background: transparent;
+    border: none;
+    color: var(--mindy-subtext);
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+.mindy-close:hover {
+    background: var(--mindy-user-bubble);
+    color: var(--mindy-text);
+}
+
+/* Privacy Note */
+.mindy-privacy-note {
+    padding: 12px 20px;
+    font-size: 0.75rem;
+    text-align: center;
+    color: var(--mindy-subtext);
+    background: #FAFAFD;
+    border-bottom: 1px solid var(--mindy-border);
+}
+
+/* Messages Area */
+.mindy-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.mindy-message-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    animation: mindy-message-in 0.3s ease-out forwards;
+}
+
+.mindy-message-row:first-child {
+}
+
+.mindy-message-row.mindy-user {
+    flex-direction: row-reverse;
+}
+
+.mindy-avatar-small {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.mindy-bubble {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: var(--mindy-text);
+}
+
+.mindy-bot .mindy-bubble {
+    background: var(--mindy-bot-bubble);
+    border: 1px solid var(--mindy-border);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.mindy-user .mindy-bubble {
+    background: var(--mindy-user-bubble);
+    border-bottom-right-radius: 4px;
+}
+
+/* Typing Indicator */
+.mindy-typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 18px !important;
+}
+
+.mindy-typing-indicator span {
+    width: 6px;
+    height: 6px;
+    background-color: var(--mindy-subtext);
+    border-radius: 50%;
+    animation: mindy-typing 1.4s infinite ease-in-out both;
+}
+
+.mindy-typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.mindy-typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+/* Input Area */
+.mindy-input-area {
+    padding: 16px 20px;
+    background: var(--mindy-panel-bg);
+    border-top: 1px solid var(--mindy-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mindy-textarea {
+    flex-grow: 1;
+    border: 1px solid var(--mindy-border);
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: none;
+    max-height: 120px;
+    outline: none;
+    background: #FAFAFD;
+    transition: border-color 0.2s, background 0.2s;
+    line-height: 1.4;
+}
+
+.mindy-textarea:focus {
+    border-color: var(--mindy-primary-light);
+    background: var(--mindy-bg);
+}
+
+.mindy-send {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--mindy-primary);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    flex-shrink: 0;
+}
+
+.mindy-send:disabled {
+    background: var(--mindy-border);
+    color: var(--mindy-subtext);
+    cursor: not-allowed;
+}
+
+.mindy-send:not(:disabled):active {
+    transform: scale(0.95);
+}
+
+.mindy-send svg {
+    margin-left: -2px; /* visual center adjustment */
+}
+
+/* SVG Animations */
+@keyframes mindy-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes mindy-blink {
+    0%, 96%, 98%, 100% { transform: scaleY(1); }
+    97%, 99% { transform: scaleY(0.1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [id="mindy-eyes"] {
+        animation: mindy-blink 5.5s infinite;
+        transform-origin: 100px 98px;
+    }
+}
+
+@keyframes mindy-message-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes mindy-typing {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+.mindy-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Mobile Responsive */
+.mindy-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(42, 33, 54, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+/* Tablet size */
+@media (max-width: 1023px) {
+    .mindy-launcher {
+        width: 88px;
+        height: 88px;
+    }
+}
+
+/* Mobile size */
+@media (max-width: 767px) {
+    .mindy-launcher {
+        width: 76px;
+        height: 76px;
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px)); /* Above nav */
+        right: 16px;
+    }
+
+    .mindy-panel {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 85vh;
+        max-height: 85vh;
+        border-radius: 24px 24px 0 0;
+        transform: translateY(100%);
+    }
+
+    .mindy-panel.is-open {
+        transform: translateY(0);
+    }
+    
+    .mindy-backdrop.is-open {
+        display: block;
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    .mindy-container.is-open .mindy-launcher {
+        display: none;
+    }
+}
+/* Mindy CSS Extensions for History and Confirmations */
+.mindy-end-confirm {
+    display: none !important;
+}
+
+.mindy-end-confirm .mindy-small-text {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--mindy-subtext);
+    margin-bottom: 12px;
+}
+
+.mindy-end-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.mindy-btn-primary {
+    background: var(--mindy-primary);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mindy-btn-primary:hover {
+    background: var(--mindy-primary-light);
+}
+
+.mindy-btn-secondary {
+    display: none;
+}
+
+.mindy-history-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--mindy-panel-bg);
+    border-radius: 24px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+}
+
+.mindy-history-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mindy-history-item {
+    padding: 12px;
+    background: var(--mindy-bg);
+    border: 1px solid var(--mindy-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.mindy-history-item:hover {
+    border-color: var(--mindy-primary-light);
+}
+
+.mindy-history-item h3 {
+    margin: 0 0 4px 0;
+    font-size: 0.95rem;
+    color: var(--mindy-text);
+}
+
+.mindy-history-item p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--mindy-subtext);
+}
+
+.mindy-history-item-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--mindy-subtext);
+}
+
+.mindy-history-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.mindy-history-item-actions button {
+    background: none;
+    border: none;
+    color: var(--mindy-primary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.mindy-system-message {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--mindy-subtext);
+    margin: 12px 0;
+    font-style: italic;
+}
+
+/* CSS Mindy Drawings */
+.css-mindy { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.css-mindy-helmet { width: 85%; height: 80%; background: radial-gradient(circle at 40% 30%, #FFFFFF 0%, #FAFAFD 80%, #EAE7F2 100%); border-radius: 40% 40% 45% 45%; box-shadow: 0 4px 12px rgba(123,94,167,0.1); position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; }
+.css-mindy-visor { width: 70%; height: 50%; background: linear-gradient(135deg, #FDFDFF 0%, #E6E4EE 100%); border-radius: 35% 35% 45% 45%; border: 3px solid #B9A6DC; position: relative; display: flex; align-items: center; justify-content: center; gap: 15%; }
+.css-mindy-eye { width: 14%; height: 26%; background: #7B5EA7; border-radius: 50%; position: relative; }
+.css-mindy-ear { position: absolute; width: 15%; height: 40%; background: #B9A6DC; border-radius: 10px; z-index: 1; top: 30%; }
+.css-mindy-ear-left { left: 0; }
+.css-mindy-ear-right { right: 0; }

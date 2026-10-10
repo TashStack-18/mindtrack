@@ -48,6 +48,14 @@ def history():
     entries = query.order_by(JournalEntry.created_at.desc()).all()
     user_tags = Tag.query.filter_by(user_id=g.user.id).order_by(Tag.name).all()
     
+    from app.services.encryption_service import decrypt_text
+    for entry in entries:
+        try:
+            decrypted = decrypt_text(entry.encrypted_content)
+            entry.preview_text = decrypted[:100] + ('...' if len(decrypted) > 100 else '')
+        except Exception:
+            entry.preview_text = "[Encrypted Content]"
+            
     return render_template('journal_history.html', entries=entries, tags=user_tags)
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -84,6 +92,14 @@ def create():
                 sentiment_label=sentiment['label']
             )
             
+            VALID_FEELINGS = {
+                'Calm', 'Content', 'Grateful', 'Hopeful', 'Excited', 'Proud', 'Relieved', 'Energised', 'Loved',
+                'Tired', 'Stressed', 'Overwhelmed', 'Worried', 'Lonely', 'Frustrated', 'Sad', 'Restless', 'Numb', 'Disappointed'
+            }
+            feelings_input = request.form.getlist('feelings')
+            valid_feelings_selected = [f for f in feelings_input if f in VALID_FEELINGS][:3]
+            entry.feelings = valid_feelings_selected
+
             all_tag_names = set(tags_input)
             for ct in custom_tags.split(','):
                 if ct.strip():
@@ -120,7 +136,14 @@ def detail(id):
         flash("We couldn't securely process this entry. Please try again.", "error")
         decrypted_content = "[Encrypted Content Unavailable]"
         
-    return render_template('journal_detail.html', entry=entry, decrypted_content=decrypted_content)
+    decrypted_reflection = ""
+    if entry.reflections and entry.reflections[0].response_encrypted:
+        try:
+            decrypted_reflection = decrypt_text(entry.reflections[0].response_encrypted)
+        except Exception:
+            decrypted_reflection = "[Encrypted Content Unavailable]"
+        
+    return render_template('journal_detail.html', entry=entry, decrypted_content=decrypted_content, decrypted_reflection=decrypted_reflection)
 
 @bp.route('/<int:id>/edit', methods=('GET', 'POST'))
 @login_required
@@ -170,6 +193,14 @@ def edit(id):
                 
             entry.mood_score = score
             entry.mood_label = MOOD_LABELS[score]
+            
+            VALID_FEELINGS = {
+                'Calm', 'Content', 'Grateful', 'Hopeful', 'Excited', 'Proud', 'Relieved', 'Energised', 'Loved',
+                'Tired', 'Stressed', 'Overwhelmed', 'Worried', 'Lonely', 'Frustrated', 'Sad', 'Restless', 'Numb', 'Disappointed'
+            }
+            feelings_input = request.form.getlist('feelings')
+            valid_feelings_selected = [f for f in feelings_input if f in VALID_FEELINGS][:3]
+            entry.feelings = valid_feelings_selected
             
             all_tag_names = set(tags_input)
             for ct in custom_tags.split(','):

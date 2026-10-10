@@ -1,0 +1,18 @@
+{% macro render_mood(level, size=64, state='', css_class='', inline_style='') %}
+{% set labels = {
+    1: 'Very Low',
+    2: 'Low',
+    3: 'Okay',
+    4: 'Good',
+    5: 'Great'
+} %}
+{% set label = labels.get(level, 'Unknown') %}
+<div class="mood-card-wrapper {{ state }} {{ css_class }}" data-mood="{{ level }}" data-label="{{ label }}" style="--ring-color: var(--mood-{{ level }}); {% if inline_style %}{{ inline_style }}{% endif %}">
+    <svg class="mood-svg" width="{{ size }}" height="{{ size }}" viewBox="0 0 100 100" aria-label="{{ label }}" role="img">
+        <use href="#mood-{{ level }}-sym" />
+    </svg>
+    {% if size >= 64 %}
+    <span class="mood-card-label" style="display: none;">{{ label }}</span>
+    {% endif %}
+</div>
+{% endmacro %}
