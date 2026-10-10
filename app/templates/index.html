@@ -4,18 +4,18 @@
 {% block content %}
 <section class="hero" style="padding: 4rem 0 8rem 0; overflow: hidden; position: relative; text-align: left;">
     <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4rem;">
-        
+
         <div style="flex: 1; min-width: 300px; z-index: 10;">
             <div class="hero-pill">MindTrack</div>
             <h1 class="hero-title" style="text-align: left; max-width: 500px; margin-bottom: 1.5rem;">Your thoughts deserve a place to land.</h1>
             <p class="hero-subtitle" style="text-align: left; padding: 0; margin-left: 0; margin-right: 0; max-width: 450px;">Journal your days, notice your patterns, and make space to reflect in a peaceful digital environment.</p>
-            
+
             <div class="hero-actions" style="justify-content: flex-start; margin-top: 2rem;">
                 <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg" style="box-shadow: 0 8px 24px rgba(154, 156, 233, 0.4);">Start journaling</a>
                 <a href="{{ url_for('auth.login') }}" class="btn btn-secondary btn-lg" style="background-color: rgba(255,255,255,0.6);">Explore MindTrack</a>
             </div>
         </div>
-        
+
         <div style="flex: 1; min-width: 300px; position: relative; height: 400px;">
             <!-- Floating Expressive Moods -->
             <div style="position: absolute; top: 10%; right: 20%; width: 80px; height: 80px; animation: float 4s infinite ease-in-out alternate; z-index: 5; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.3));">
@@ -33,7 +33,7 @@
             <div style="position: absolute; top: 5%; right: 80%; width: 45px; height: 45px; animation: float 4.5s infinite ease-in-out alternate; z-index: 2; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.15)); opacity: 0.7;">
                 {{ render_mood(1, size=64, inline_style="width: 100%; height: 100%;") }}
             </div>
-            
+
             <!-- Abstract background shapes -->
             <div style="position: absolute; top: 50%; right: 30%; width: 400px; height: 400px; background: linear-gradient(135deg, var(--primary-light), var(--accent)); border-radius: 50%; transform: translate(50%, -50%); opacity: 0.5; filter: blur(40px); z-index: 1;"></div>
         </div>
@@ -46,7 +46,7 @@
             <h2>A quiet space for clarity</h2>
             <p>Built with privacy first. Your data stays completely under your control.</p>
         </div>
-        
+
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">
@@ -55,7 +55,7 @@
                 <h3>Journal Freely</h3>
                 <p>Record your days without judgement. Select a mood and write whatever feels right.</p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon" style="color: var(--accent); background-color: var(--positive-light);">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
@@ -63,7 +63,7 @@
                 <h3>Notice Patterns</h3>
                 <p>MindTrack gently highlights recurring themes and mood associations without diagnosing.</p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon" style="color: var(--secondary);">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -73,5 +73,10 @@
             </div>
         </div>
     </div>
+</section>
+<section style="padding: 6rem 0; text-align: center;">
+    <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Ready to check in?</h2>
+    <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 2.5rem;">Join MindTrack today and start building a healthier relationship with your emotions.</p>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">Create Your Account</a>
 </section>
 {% endblock %}
