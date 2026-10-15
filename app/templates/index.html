@@ -1,82 +1,204 @@
 {% extends 'base.html' %}
-{% from 'macros/mood.html' import render_mood %}
+
+{% block title %}MindTrack | A Calm, Private Mood Journal{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
+{% block main_class %}landing{% endblock %}
 
 {% block content %}
-<section class="hero" style="padding: 4rem 0 8rem 0; overflow: hidden; position: relative; text-align: left;">
-    <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4rem;">
-
-        <div style="flex: 1; min-width: 300px; z-index: 10;">
-            <div class="hero-pill">MindTrack</div>
-            <h1 class="hero-title" style="text-align: left; max-width: 500px; margin-bottom: 1.5rem;">Your thoughts deserve a place to land.</h1>
-            <p class="hero-subtitle" style="text-align: left; padding: 0; margin-left: 0; margin-right: 0; max-width: 450px;">Journal your days, notice your patterns, and make space to reflect in a peaceful digital environment.</p>
-
-            <div class="hero-actions" style="justify-content: flex-start; margin-top: 2rem;">
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg" style="box-shadow: 0 8px 24px rgba(154, 156, 233, 0.4);">Start journaling</a>
-                <a href="{{ url_for('auth.login') }}" class="btn btn-secondary btn-lg" style="background-color: rgba(255,255,255,0.6);">Explore MindTrack</a>
+{# ---------- Hero ---------- #}
+<section class="lp-hero" aria-labelledby="lp-hero-title">
+    <div class="lp-container lp-hero-grid">
+        <div class="lp-hero-copy">
+            <p class="lp-eyebrow">Your space, your pace</p>
+            <h1 class="lp-hero-title" id="lp-hero-title">
+                <span>Your thoughts deserve</span>
+                <span>a place to land.</span>
+            </h1>
+            <p class="lp-hero-lead">Journal your days, understand your moods, and make room for reflection in a calm, private space that's yours.</p>
+            <div class="lp-hero-actions">
+                <a href="{{ url_for('auth.register') }}" class="lp-btn lp-btn--primary">
+                    Start Journaling
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </a>
+                <a href="#features" class="lp-btn lp-btn--secondary">Explore MindTrack</a>
             </div>
+            <p class="lp-hero-note">
+                <svg class="lp-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                Your journal entries are encrypted before they're saved.
+            </p>
         </div>
 
-        <div style="flex: 1; min-width: 300px; position: relative; height: 400px;">
-            <!-- Floating Expressive Moods -->
-            <div style="position: absolute; top: 10%; right: 20%; width: 80px; height: 80px; animation: float 4s infinite ease-in-out alternate; z-index: 5; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.3));">
-                {{ render_mood(5, size=64, inline_style="width: 100%; height: 100%;") }}
+        <div class="lp-hero-visual">
+            <div class="lp-hero-frame">
+                <img src="{{ url_for('static', filename='img/daily/hero_1.jpg') }}" alt="" width="1024" height="1024" fetchpriority="high">
             </div>
-            <div style="position: absolute; top: 40%; right: 60%; width: 60px; height: 60px; animation: float 5s infinite ease-in-out alternate-reverse; z-index: 3; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.2)); opacity: 0.9;">
-                {{ render_mood(3, size=64, inline_style="width: 100%; height: 100%;") }}
+            <div class="lp-hero-card" aria-hidden="true">
+                <span class="lp-hero-card-label">Today's check-in</span>
+                <div class="lp-hero-card-row">
+                    <span class="mood-face" style="--face: #7dcbb0;">
+                        <i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i>
+                    </span>
+                    <span>
+                        <strong>Feeling good</strong>
+                        <small>A few words is enough to begin.</small>
+                    </span>
+                </div>
             </div>
-            <div style="position: absolute; bottom: 5%; right: 10%; width: 70px; height: 70px; animation: float 6s infinite ease-in-out alternate; z-index: 4; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.2));">
-                {{ render_mood(4, size=64, inline_style="width: 100%; height: 100%;") }}
-            </div>
-            <div style="position: absolute; bottom: 25%; right: 80%; width: 50px; height: 50px; animation: float 7s infinite ease-in-out alternate-reverse; z-index: 2; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.15)); opacity: 0.8;">
-                {{ render_mood(2, size=64, inline_style="width: 100%; height: 100%;") }}
-            </div>
-            <div style="position: absolute; top: 5%; right: 80%; width: 45px; height: 45px; animation: float 4.5s infinite ease-in-out alternate; z-index: 2; filter: drop-shadow(0 12px 24px rgba(154,156,233,0.15)); opacity: 0.7;">
-                {{ render_mood(1, size=64, inline_style="width: 100%; height: 100%;") }}
-            </div>
-
-            <!-- Abstract background shapes -->
-            <div style="position: absolute; top: 50%; right: 30%; width: 400px; height: 400px; background: linear-gradient(135deg, var(--primary-light), var(--accent)); border-radius: 50%; transform: translate(50%, -50%); opacity: 0.5; filter: blur(40px); z-index: 1;"></div>
         </div>
     </div>
 </section>
 
-<section class="features-section" id="how-it-works">
-    <div class="container">
-        <div class="section-header">
-            <h2>A quiet space for clarity</h2>
-            <p>Built with privacy first. Your data stays completely under your control.</p>
-        </div>
+{# ---------- Benefits ---------- #}
+<section class="lp-features" id="features" aria-labelledby="lp-features-title">
+    <div class="lp-container">
+        <header class="lp-section-header">
+            <p class="lp-eyebrow">Why MindTrack</p>
+            <h2 class="lp-section-title" id="lp-features-title">A little more clarity, one day at a time.</h2>
+            <p class="lp-section-lead">Everything you need to check in with yourself, and nothing that gets in the way.</p>
+        </header>
 
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                </div>
+        <div class="lp-feature-grid">
+            <article class="lp-feature-card">
+                <span class="lp-feature-icon" aria-hidden="true">
+                    <svg class="lp-icon" viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                </span>
                 <h3>Journal Freely</h3>
-                <p>Record your days without judgement. Select a mood and write whatever feels right.</p>
-            </div>
+                <p>Record your thoughts and moods in a private, judgment-free space, with expressive check-ins for how today feels.</p>
+            </article>
 
-            <div class="feature-card">
-                <div class="feature-icon" style="color: var(--accent); background-color: var(--positive-light);">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
-                </div>
+            <article class="lp-feature-card">
+                <span class="lp-feature-icon lp-feature-icon--sage" aria-hidden="true">
+                    <svg class="lp-icon" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 5-6" /></svg>
+                </span>
                 <h3>Notice Patterns</h3>
-                <p>MindTrack gently highlights recurring themes and mood associations without diagnosing.</p>
-            </div>
+                <p>See recurring themes, mood trends, and gentle, explainable connections between your entries and how you felt.</p>
+            </article>
 
-            <div class="feature-card">
-                <div class="feature-icon" style="color: var(--secondary);">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                </div>
-                <h3>Reflect Safely</h3>
-                <p>Receive thoughtful CBT-inspired prompts that encourage new perspectives.</p>
-            </div>
+            <article class="lp-feature-card">
+                <span class="lp-feature-icon lp-feature-icon--rose" aria-hidden="true">
+                    <svg class="lp-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" /><path d="M8 9h8M8 13h5" /></svg>
+                </span>
+                <h3>Reflect Thoughtfully</h3>
+                <p>Use guided, CBT-inspired prompts to consider new perspectives, or talk things through with Mindy, your reflection companion.</p>
+            </article>
+
+            <article class="lp-feature-card">
+                <span class="lp-feature-icon" aria-hidden="true">
+                    <svg class="lp-icon" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                </span>
+                <h3>Your Privacy Matters</h3>
+                <p>The text of your entries, reflections, and Mindy chats is encrypted before it's stored, and it stays behind your account login.</p>
+            </article>
         </div>
     </div>
 </section>
-<section style="padding: 6rem 0; text-align: center;">
-    <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Ready to check in?</h2>
-    <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 2.5rem;">Join MindTrack today and start building a healthier relationship with your emotions.</p>
-    <a href="{{ url_for('auth.register') }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">Create Your Account</a>
+
+{# ---------- How it works + static preview ---------- #}
+<section class="lp-how" aria-labelledby="lp-how-title">
+    <div class="lp-container lp-how-grid">
+        <div class="lp-how-copy">
+            <p class="lp-eyebrow">How it works</p>
+            <h2 class="lp-section-title" id="lp-how-title">From a quick check-in to a clearer view.</h2>
+            <p class="lp-section-lead">MindTrack fits into a few quiet minutes. Start small, and let the bigger picture build over time.</p>
+            <ol class="lp-steps">
+                <li><div><strong>Check in</strong><span>Pick the mood that fits today and any feelings that came with it.</span></div></li>
+                <li><div><strong>Write it down</strong><span>A sentence or a page. Whatever feels right is enough.</span></div></li>
+                <li><div><strong>Reflect</strong><span>Answer a gentle prompt that helps you look at things from another angle.</span></div></li>
+                <li><div><strong>Look back</strong><span>Explore trends and themes, and export a PDF summary if you'd like to share it with a counselor.</span></div></li>
+            </ol>
+        </div>
+
+        <figure class="lp-preview" aria-label="Example of a MindTrack journal entry">
+            <div class="lp-preview-top">
+                <span class="lp-preview-badge">Example entry</span>
+                <span class="lp-preview-date">Tuesday evening</span>
+            </div>
+
+            <span class="lp-preview-label">How are you feeling?</span>
+            <div class="lp-preview-moods" aria-hidden="true">
+                <span class="lp-preview-mood">
+                    <span class="mood-face" style="--face: #a77be5;"><i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i></span>
+                    Very Low
+                </span>
+                <span class="lp-preview-mood">
+                    <span class="mood-face" style="--face: #68b7ed;"><i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i></span>
+                    Low
+                </span>
+                <span class="lp-preview-mood is-selected">
+                    <span class="mood-face" style="--face: #f3c95a;"><i class="eye left"></i><i class="eye right"></i><i class="mouth flat"></i></span>
+                    Okay
+                </span>
+                <span class="lp-preview-mood">
+                    <span class="mood-face" style="--face: #7dcbb0;"><i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i></span>
+                    Good
+                </span>
+                <span class="lp-preview-mood">
+                    <span class="mood-face" style="--face: #f16796;"><i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i></span>
+                    Great
+                </span>
+            </div>
+
+            <div class="lp-preview-entry">
+                <h3>A slower day than I expected</h3>
+                <p>The group project meeting ran long and I felt like I never caught up. I kept thinking everyone else had it more together than me&hellip;</p>
+            </div>
+
+            <div class="lp-preview-prompt">
+                <svg class="lp-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M7 7 5.5 5.5M18.5 18.5 17 17M7 17l-1.5 1.5M18.5 5.5 17 7" /><circle cx="12" cy="12" r="3.5" /></svg>
+                <div>
+                    <strong>Reflection prompt</strong>
+                    <p>If a friend described this same situation to you, what would you say to them?</p>
+                </div>
+            </div>
+
+            <figcaption class="lp-preview-caption">Illustrative example. Your own entries are only visible after you log in.</figcaption>
+        </figure>
+    </div>
 </section>
+
+{# ---------- Final call to action ---------- #}
+<section class="lp-cta" aria-labelledby="lp-cta-title">
+    <div class="lp-container">
+        <div class="lp-cta-panel">
+            <h2 id="lp-cta-title">Ready to check in with yourself?</h2>
+            <p>Start with a few words. Make room for whatever today feels like.</p>
+            <a href="{{ url_for('auth.register') }}" class="lp-btn lp-btn--primary">Create Your Account</a>
+            <small>Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></small>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block footer %}
+<footer class="landing-footer">
+    <div class="lp-container">
+        <div class="lp-footer-top">
+            <div class="lp-footer-brand">
+                <a href="{{ url_for('dashboard.index') }}" class="brand" aria-label="MindTrack home">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
+                    </span>
+                    <span><strong>MindTrack</strong></span>
+                </a>
+                <p>A calm, private mood journal for checking in with yourself, noticing patterns, and reflecting at your own pace.</p>
+            </div>
+            <nav class="lp-footer-links" aria-label="Footer">
+                <h2>Get started</h2>
+                <ul>
+                    <li><a href="{{ url_for('auth.register') }}">Create an account</a></li>
+                    <li><a href="{{ url_for('auth.login') }}">Log in</a></li>
+                    <li><a href="#features">Features</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="lp-footer-bottom">
+            <span>&copy; MindTrack</span>
+            <span>MindTrack supports self-reflection and is not a substitute for professional mental health care.</span>
+        </div>
+    </div>
+</footer>
 {% endblock %}

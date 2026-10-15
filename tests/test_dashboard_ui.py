@@ -44,7 +44,8 @@ def test_dashboard_renders_for_zero_entries(client, app):
     response = client.get('/dashboard', follow_redirects=True)
     assert response.status_code == 200
     html = response.data.decode()
-    assert "Your journal is empty." in html
+    assert "Your journal is empty" in html
+    assert "No mood history yet" in html  # honest empty states, no fake data
 
 def test_dashboard_renders_for_many_entries(client, app):
     """Ensure dashboard renders correctly for many entries."""
@@ -62,7 +63,10 @@ def test_dashboard_renders_for_many_entries(client, app):
     client.post('/login', data={'email': 'many@x.com', 'password': 'pass'})
     response = client.get('/dashboard', follow_redirects=True)
     assert response.status_code == 200
-    assert b"Entry 0" in response.data
+    html = response.data.decode()
+    # Recent Moments shows the latest five, with "View all" for the rest.
+    assert html.count('class="moment"') == 5
+    assert 'href="/journal/history"' in html
 
 def test_no_gamification_vocabulary(app):
     """Ensure no gamification vocabulary appears in any template."""
@@ -85,37 +89,27 @@ def test_no_gamification_vocabulary(app):
                             continue # Ignore badge as we use badge classes
                         assert term not in content, f"Gamification term '{term}' found in {file}"
 
-def test_image_selection_per_login(client, app):
+def test_daily_image_is_stable_across_refresh_and_relogin(client, app):
+    # The dashboard photo now changes by calendar date, not per login
+    # (see tests/test_dashboard_header_and_photo.py for date-change tests).
     import re
     with app.app_context():
-        u1 = User(name='A', email='rot1@x.com')
-        u1.set_password('pass')
-        db.session.add(u1)
-        u2 = User(name='B', email='rot2@x.com')
-        u2.set_password('pass')
-        db.session.add(u2)
+        for email in ('rot1@x.com', 'rot2@x.com'):
+            u = User(name='A', email=email)
+            u.set_password('pass')
+            db.session.add(u)
         db.session.commit()
 
-    # User 1 logs in
+    def photo():
+        html = client.get('/dashboard', follow_redirects=True).data.decode('utf-8', errors='ignore')
+        return re.search(r'img/inspiration/([\w-]+)\.jpg', html).group(1)
+
     client.post('/login', data={'email': 'rot1@x.com', 'password': 'pass'})
-    res1 = client.get('/dashboard', follow_redirects=True)
-    hero1 = re.search(r'hero_(\d+)\.jpg', res1.data.decode('utf-8', errors='ignore')).group(1)
-
-    # Refresh
-    res2 = client.get('/dashboard', follow_redirects=True)
-    hero2 = re.search(r'hero_(\d+)\.jpg', res2.data.decode('utf-8', errors='ignore')).group(1)
-    assert hero1 == hero2, 'Image changed on refresh'
-
-    # Logout and login again
+    first = photo()
+    assert photo() == first, 'Image changed on refresh'
     client.get('/logout')
     client.post('/login', data={'email': 'rot1@x.com', 'password': 'pass'})
-    res3 = client.get('/dashboard', follow_redirects=True)
-    hero3 = re.search(r'hero_(\d+)\.jpg', res3.data.decode('utf-8', errors='ignore')).group(1)
-    assert hero1 != hero3, 'Image did not change on new login'
-
-    # User 2 logs in
+    assert photo() == first, 'Image changed on re-login the same day'
     client.get('/logout')
     client.post('/login', data={'email': 'rot2@x.com', 'password': 'pass'})
-    res4 = client.get('/dashboard', follow_redirects=True)
-    hero4 = re.search(r'hero_(\d+)\.jpg', res4.data.decode('utf-8', errors='ignore')).group(1)
-    # Could be same or different purely by chance (1/30), but it works independently.
+    assert photo() == first, 'Same day should show the same photo for everyone'

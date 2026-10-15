@@ -1,0 +1,22 @@
+# Files NOT uploaded by `gcloud run deploy --source .` (source upload to Cloud Build).
+# Secrets and local databases must never leave this machine.
+.env
+.env.*
+!.env.example
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.gemini/
+.claude/
+screenshots/
+.firebase/
+firebase-public/

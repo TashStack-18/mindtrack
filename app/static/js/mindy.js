@@ -2,99 +2,236 @@ document.addEventListener('DOMContentLoaded', () => {
     const launcher = document.getElementById('mindy-launcher');
     if (!launcher) return; // Not authenticated or partial not included
 
-    const panel = document.getElementById('mindy-panel');
-    const closeBtn = document.getElementById('mindy-close');
-    const backdrop = document.getElementById('mindy-backdrop');
-    const container = document.getElementById('mindy-container');
-    
-    const inputArea = document.getElementById('mindy-input-area');
-    const input = document.getElementById('mindy-input');
-    const sendBtn = document.getElementById('mindy-send');
-    const messagesContainer = document.getElementById('mindy-messages');
-    const typingIndicator = document.getElementById('mindy-typing');
-    
-    // Avatar template - wait, it was hardcoded originally but we can build the DOM
-    
-    const historyBtn = document.getElementById('mindy-history-btn');
-    const historyPanel = document.getElementById('mindy-history-panel');
-    const historyClose = document.getElementById('mindy-history-close');
-    const historyList = document.getElementById('mindy-history-list');
-    
+    const $ = (id) => document.getElementById(id);
+    const panel = $('mindy-panel');
+    const container = $('mindy-container');
+    const backdrop = $('mindy-backdrop');
+    const form = $('mindy-input-area');
+    const input = $('mindy-input');
+    const sendBtn = $('mindy-send');
+    const messages = $('mindy-messages');
+    const typing = $('mindy-typing');
+    const jumpBtn = $('mindy-jump');
+    const suggestionsEl = $('mindy-suggestions');
+    const counter = $('mindy-counter');
+    const historyPanel = $('mindy-history-panel');
+    const historyList = $('mindy-history-list');
+    const avatarTemplate = $('mindy-avatar-template');
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const MAX_CHARS = 1000;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    let mindyState = {
-        turn: 0,
-        last_intents: [],
-        last_templates: [],
-        context_used_turn: -99
-    };
-    
-    let isWaitingForReply = false;
-    let currentConversationId = null;
-    let isReopenedOld = false;
+    let conversationId = null;
+    let isSending = false;
+    let viewingOld = false;
+    let loading = null;
 
-    // --- Avatar SVG Factory ---
-    function createMindyAvatar() {
-        const div = document.createElement('div');
-        div.className = 'mindy-avatar-small';
-        div.innerHTML = `<img src="/static/img/mindy-full.svg" alt="Mindy Avatar" style="width: 100%; height: 100%; object-fit: contain;">`;
-        return div;
+    // --- Helpers -------------------------------------------------------------
+    async function api(url, options = {}) {
+        const headers = { 'X-CSRFToken': csrfToken, ...(options.body ? { 'Content-Type': 'application/json' } : {}) };
+        const res = await fetch(url, { credentials: 'same-origin', ...options, headers });
+        let data = null;
+        try { data = await res.json(); } catch (e) { /* non-JSON response */ }
+        if (!res.ok) {
+            const err = new Error((data && data.error) || 'request_failed');
+            err.status = res.status;
+            throw err;
+        }
+        return data;
     }
 
-    // --- Initializer ---
-    async function initMindySession() {
-        if (isReopenedOld) {
-            // Already viewing an old session, don't re-init automatically unless we closed and opened?
-            // "But a completely new Mindy session must start with a clean context."
-            // We will just do a standard start.
-            clearMessages();
-            isReopenedOld = false;
+    function nearBottom() {
+        return messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
+    }
+
+    function scrollToBottom(force = false) {
+        if (force || nearBottom()) {
+            messages.scrollTo({ top: messages.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' });
+            jumpBtn.hidden = true;
+        } else {
+            jumpBtn.hidden = false;
         }
-        
-        try {
-            const response = await fetch('/mindy/init', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken }
-            });
-            const data = await response.json();
-            
-            if (data.conversation_id) {
-                currentConversationId = data.conversation_id;
-                mindyState = data.state;
-                
+    }
+
+    function clearMessages() {
+        messages.querySelectorAll(':scope > :not(#mindy-typing)').forEach((el) => el.remove());
+    }
+
+    function addRow(sender, text) {
+        const stickToBottom = nearBottom();
+        const row = document.createElement('div');
+        row.className = `mindy-message-row ${sender === 'user' ? 'mindy-user' : 'mindy-bot'}`;
+        if (sender !== 'user') row.appendChild(avatarTemplate.content.firstElementChild.cloneNode(true));
+
+        const bubble = document.createElement('div');
+        bubble.className = 'mindy-bubble';
+        const who = document.createElement('span');
+        who.className = 'mindy-sr-only';
+        who.textContent = sender === 'user' ? 'You said: ' : 'Mindy said: ';
+        bubble.append(who, document.createTextNode(text)); // textContent only: never HTML
+        row.appendChild(bubble);
+        messages.insertBefore(row, typing);
+        scrollToBottom(stickToBottom || sender === 'user');
+        return row;
+    }
+
+    function addNote(text, extra) {
+        const note = document.createElement('div');
+        note.className = 'mindy-system-message';
+        note.textContent = text;
+        if (extra) note.appendChild(extra);
+        messages.insertBefore(note, typing);
+        scrollToBottom(true);
+        return note;
+    }
+
+    function setSuggestions(list) {
+        suggestionsEl.replaceChildren();
+        (list || []).slice(0, 5).forEach((label) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'mindy-chip';
+            chip.textContent = label;
+            chip.addEventListener('click', () => send(label));
+            suggestionsEl.appendChild(chip);
+        });
+        suggestionsEl.hidden = !suggestionsEl.children.length;
+    }
+
+    function setTyping(on) {
+        typing.hidden = !on;
+        if (on) scrollToBottom(true);
+    }
+
+    function updateComposer() {
+        const len = input.value.length;
+        sendBtn.disabled = isSending || !input.value.trim() || viewingOld || !conversationId;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        if (len > MAX_CHARS - 200) {
+            counter.hidden = false;
+            counter.textContent = `${len} / ${MAX_CHARS}`;
+        } else {
+            counter.hidden = true;
+        }
+    }
+
+    function setComposerEnabled(enabled) {
+        form.hidden = !enabled;
+        if (!enabled) suggestionsEl.hidden = true;
+    }
+
+    // --- Conversation lifecycle -------------------------------------------
+    function renderConversation(data) {
+        conversationId = data.conversation_id;
+        viewingOld = false;
+        clearMessages();
+        data.messages.forEach((m) => addRow(m.sender, m.message));
+        setSuggestions(data.suggestions);
+        setComposerEnabled(true);
+        scrollToBottom(true);
+        updateComposer();
+    }
+
+    function init() {
+        if (loading) return loading;
+        loading = api('/mindy/init', { method: 'POST' })
+            .then(renderConversation)
+            .catch(() => {
                 clearMessages();
-                data.messages.forEach(msg => {
-                    if (msg.sender === 'user') {
-                        appendUserMessage(msg.message, false);
-                    } else {
-                        appendBotMessage(msg.message, false);
-                    }
-                });
-                scrollToBottom();
-                
-                // Show controls
-                inputArea.style.display = 'flex';
-            }
+                const retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'mindy-link-btn';
+                retry.textContent = 'Try again';
+                retry.addEventListener('click', () => { loading = null; init(); });
+                addNote("I couldn't connect just now. ", retry);
+            })
+            .finally(() => { loading = null; });
+        return loading;
+    }
+
+    async function startNew() {
+        if (isSending) return;
+        try {
+            const data = await api('/mindy/new', { method: 'POST' });
+            renderConversation(data);
+            closeHistory();
+            input.focus();
         } catch (e) {
-            console.error("Init Mindy Error:", e);
+            addNote("Couldn't start a new chat right now. Please try again.");
         }
     }
 
-    // --- UI Toggles ---
+    async function send(text) {
+        text = (text || '').trim();
+        if (!text || isSending || viewingOld || !conversationId) return;
+        if (text.length > MAX_CHARS) {
+            addNote(`That's a little long. Please keep messages under ${MAX_CHARS} characters.`);
+            return;
+        }
+        isSending = true;
+        input.value = '';
+        updateComposer();
+        setSuggestions([]);
+        const row = addRow('user', text);
+        setTyping(true);
+        const started = performance.now();
+
+        try {
+            const data = await api('/mindy/message', {
+                method: 'POST',
+                body: JSON.stringify({ message: text, conversation_id: conversationId }),
+            });
+            // Keep the typing dots visible for a beat so the reply doesn't "pop".
+            const wait = Math.max(0, 350 - (performance.now() - started));
+            await new Promise((r) => setTimeout(r, wait));
+            setTyping(false);
+            addRow('mindy', data.reply);
+            setSuggestions(data.suggestions);
+        } catch (err) {
+            setTyping(false);
+            row.classList.add('is-failed');
+            if (err.status === 401) {
+                addNote('Your session has ended. Please log in again.');
+            } else if (err.status === 404 || err.status === 400) {
+                // The conversation was ended or deleted elsewhere: start fresh.
+                conversationId = null;
+                await init();
+                input.value = text;
+                addNote('That chat had ended, so I started a new one. Press send to try again.');
+            } else {
+                const retry = document.createElement('button');
+                retry.type = 'button';
+                retry.className = 'mindy-link-btn';
+                retry.textContent = 'Retry';
+                retry.addEventListener('click', () => {
+                    row.remove();
+                    note.remove();
+                    send(text);
+                });
+                const note = addNote("That didn't send. ", retry);
+                if (!input.value) input.value = text;
+            }
+        } finally {
+            isSending = false;
+            updateComposer();
+            if (window.innerWidth > 767) input.focus();
+        }
+    }
+
+    // --- Panel open/close ----------------------------------------------------
     function openMindy() {
+        panel.hidden = false;
+        // Force a layout pass so the fade-in transition still runs, without
+        // depending on requestAnimationFrame (paused in background tabs).
+        void panel.offsetWidth;
         panel.classList.add('is-open');
         backdrop.classList.add('is-open');
         container.classList.add('is-open');
         launcher.setAttribute('aria-expanded', 'true');
-        
-        if (!currentConversationId && !isReopenedOld) {
-            initMindySession();
-        }
-        
-        setTimeout(() => {
-            if (!isReopenedOld) input.focus();
-            scrollToBottom();
-        }, 300);
+        if (!conversationId && !viewingOld) init();
+        setTimeout(() => { input.focus(); scrollToBottom(true); }, reduceMotion ? 0 : 200);
     }
 
     function closeMindy() {
@@ -102,267 +239,139 @@ document.addEventListener('DOMContentLoaded', () => {
         backdrop.classList.remove('is-open');
         container.classList.remove('is-open');
         launcher.setAttribute('aria-expanded', 'false');
+        setTimeout(() => { if (!panel.classList.contains('is-open')) panel.hidden = true; }, reduceMotion ? 0 : 250);
+        launcher.focus();
     }
 
-    launcher.addEventListener('click', openMindy);
-    closeBtn.addEventListener('click', closeMindy);
-    backdrop.addEventListener('click', () => {
-        if (historyPanel.style.display === 'flex') {
-            closeHistory();
-        } else {
-            closeMindy();
-        }
+    launcher.addEventListener('click', () => (panel.classList.contains('is-open') ? closeMindy() : openMindy()));
+    // Sidebar / mobile-nav "Mindy" items open the same panel.
+    document.querySelectorAll('[data-open-mindy]').forEach((btn) => {
+        btn.setAttribute('aria-controls', 'mindy-panel');
+        btn.addEventListener('click', openMindy);
     });
-    
+    $('mindy-close').addEventListener('click', closeMindy);
+    backdrop.addEventListener('click', closeMindy);
+    $('mindy-new-btn').addEventListener('click', startNew);
+    jumpBtn.addEventListener('click', () => scrollToBottom(true));
+    messages.addEventListener('scroll', () => { if (nearBottom()) jumpBtn.hidden = true; });
+
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            if (historyPanel.style.display === 'flex') {
-                closeHistory();
-            } else if (panel.classList.contains('is-open')) {
-                closeMindy();
-            }
-        }
+        if (e.key !== 'Escape' || !panel.classList.contains('is-open')) return;
+        if (!historyPanel.hidden) closeHistory();
+        else closeMindy();
     });
 
-    // --- Messaging ---
-    function clearMessages() {
-        const msgs = messagesContainer.querySelectorAll('.mindy-message-row:not(#mindy-typing)');
-        msgs.forEach(m => m.remove());
-    }
-
-    function scrollToBottom() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function appendUserMessage(text, scroll=true) {
-        const row = document.createElement('div');
-        row.className = 'mindy-message-row mindy-user';
-        
-        const bubble = document.createElement('div');
-        bubble.className = 'mindy-bubble';
-        bubble.textContent = text;
-        
-        row.appendChild(bubble);
-        messagesContainer.insertBefore(row, typingIndicator);
-        if (scroll) scrollToBottom();
-    }
-
-    function appendBotMessage(text, scroll=true) {
-        const row = document.createElement('div');
-        row.className = 'mindy-message-row mindy-bot';
-        
-        row.appendChild(createMindyAvatar());
-        
-        const bubble = document.createElement('div');
-        bubble.className = 'mindy-bubble';
-        
-        const sr = document.createElement('span');
-        sr.className = 'mindy-sr-only';
-        sr.textContent = 'Mindy said: ';
-        
-        const textNode = document.createTextNode(text);
-        bubble.appendChild(sr);
-        bubble.appendChild(textNode);
-        row.appendChild(bubble);
-        
-        messagesContainer.insertBefore(row, typingIndicator);
-        if (scroll) scrollToBottom();
-    }
-
-    function appendSystemMessage(text) {
-        const row = document.createElement('div');
-        row.className = 'mindy-system-message';
-        row.textContent = text;
-        messagesContainer.insertBefore(row, typingIndicator);
-        scrollToBottom();
-    }
-
-    async function sendMessage() {
-        if (isReopenedOld) return; // Cannot send in old
-        const text = input.value.trim();
-        if (!text || isWaitingForReply || !currentConversationId) return;
-
-        input.value = '';
-        input.style.height = 'auto';
-        sendBtn.setAttribute('disabled', 'true');
-        isWaitingForReply = true;
-        
-        appendUserMessage(text);
-        typingIndicator.style.display = 'flex';
-        scrollToBottom();
-
-        try {
-            const response = await fetch('/mindy/message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    message: text,
-                    state: mindyState,
-                    conversation_id: currentConversationId
-                })
-            });
-
-            if (!response.ok) throw new Error('Network error');
-
-            const data = await response.json();
-            mindyState = data.state;
-            
-            const delay = Math.min(Math.max(data.reply.length * 20, 800), 2000);
-            setTimeout(() => {
-                typingIndicator.style.display = 'none';
-                appendBotMessage(data.reply);
-                isWaitingForReply = false;
-                
-                if (input.value.trim().length > 0) sendBtn.removeAttribute('disabled');
-                if (window.innerWidth > 767) input.focus();
-            }, delay);
-
-        } catch (error) {
-            typingIndicator.style.display = 'none';
-            appendBotMessage("I'm having trouble connecting right now. Let's try again in a moment.");
-            isWaitingForReply = false;
-            if (input.value.trim() === '') {
-                input.value = text;
-                sendBtn.removeAttribute('disabled');
-            }
-        }
-    }
-
-    input.addEventListener('input', () => {
-        input.style.height = 'auto';
-        input.style.height = (input.scrollHeight < 120 ? input.scrollHeight : 120) + 'px';
-        if (input.value.trim().length > 0 && !isWaitingForReply) {
-            sendBtn.removeAttribute('disabled');
-        } else {
-            sendBtn.setAttribute('disabled', 'true');
-        }
-    });
-
+    form.addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
+    input.addEventListener('input', updateComposer);
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
             e.preventDefault();
-            sendMessage();
+            send(input.value);
         }
     });
 
-    sendBtn.addEventListener('click', sendMessage);
-
-
-
-    // --- History ---
+    // --- History -------------------------------------------------------------
     function openHistory() {
-        historyPanel.style.display = 'flex';
+        historyPanel.hidden = false;
+        $('mindy-history-close').focus();
         loadHistory();
     }
     function closeHistory() {
-        historyPanel.style.display = 'none';
+        historyPanel.hidden = true;
     }
-    
-    if (historyBtn) {
-        historyBtn.addEventListener('click', openHistory);
+    $('mindy-history-btn').addEventListener('click', openHistory);
+    $('mindy-history-close').addEventListener('click', closeHistory);
+
+    function historyMessage(text) {
+        const p = document.createElement('p');
+        p.className = 'mindy-history-empty';
+        p.textContent = text;
+        historyList.replaceChildren(p);
     }
-    historyClose.addEventListener('click', closeHistory);
-    
+
     async function loadHistory() {
-        historyList.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--mindy-subtext);">Loading...</div>';
+        historyMessage('Loading…');
         try {
-            const res = await fetch('/mindy/history');
-            const data = await res.json();
-            
-            if (data.history.length === 0) {
-                historyList.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--mindy-subtext);">No saved conversations yet.</div>';
+            const data = await api('/mindy/history');
+            if (!data.history.length) {
+                historyMessage("No saved conversations yet. Start a new chat and your current one will be saved here.");
                 return;
             }
-            
-            historyList.innerHTML = '';
-            data.history.forEach(item => {
-                const el = document.createElement('div');
-                el.className = 'mindy-history-item';
-                el.innerHTML = `
-                    <h3>${item.title.replace(/</g, "&lt;")}</h3>
-                    <p>${item.preview.replace(/</g, "&lt;")}</p>
-                    <div class="mindy-history-item-meta">
-                        <span>${item.date} at ${item.time} &middot; ${item.message_count} msgs</span>
-                        <div class="mindy-history-item-actions">
-                            <button onclick="window.renameMindyConv(${item.id})">Rename</button>
-                            <button onclick="window.deleteMindyConv(${item.id})">Delete</button>
-                        </div>
-                    </div>
-                `;
-                el.addEventListener('click', (e) => {
-                    if (e.target.tagName !== 'BUTTON') {
-                        loadConversation(item.id);
-                        closeHistory();
-                    }
-                });
-                historyList.appendChild(el);
+            historyList.replaceChildren();
+            data.history.forEach((item) => {
+                const card = document.createElement('article');
+                card.className = 'mindy-history-item';
+
+                const open = document.createElement('button');
+                open.type = 'button';
+                open.className = 'mindy-history-open';
+                const title = document.createElement('h3');
+                title.textContent = item.title;
+                const preview = document.createElement('p');
+                preview.textContent = item.preview;
+                const meta = document.createElement('span');
+                meta.className = 'mindy-history-meta';
+                meta.textContent = `${item.date} · ${item.time} · ${item.message_count} messages`;
+                open.append(title, preview, meta);
+                open.addEventListener('click', () => loadConversation(item.id));
+
+                const actions = document.createElement('div');
+                actions.className = 'mindy-history-item-actions';
+                const rename = document.createElement('button');
+                rename.type = 'button';
+                rename.textContent = 'Rename';
+                rename.addEventListener('click', () => renameConversation(item.id, item.title));
+                const del = document.createElement('button');
+                del.type = 'button';
+                del.textContent = 'Delete';
+                del.addEventListener('click', () => deleteConversation(item.id));
+                actions.append(rename, del);
+
+                card.append(open, actions);
+                historyList.appendChild(card);
             });
-        } catch(e) {
-            historyList.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--mindy-subtext);">Failed to load history.</div>';
+        } catch (e) {
+            historyMessage("Couldn't load your conversations. Please try again.");
         }
     }
-    
+
     async function loadConversation(id) {
         try {
-            const res = await fetch(`/mindy/conversation/${id}`);
-            const data = await res.json();
-            
+            const data = await api(`/mindy/conversation/${id}`);
             clearMessages();
-            data.messages.forEach(msg => {
-                if (msg.sender === 'user') appendUserMessage(msg.message, false);
-                else appendBotMessage(msg.message, false);
-            });
-            scrollToBottom();
-            
-            isReopenedOld = true;
-            currentConversationId = null;
-            inputArea.style.display = 'none';
-            
-            appendSystemMessage(`Saved conversation: ${data.title}`);
-            
-            // Add button to start new
-            const newBtnContainer = document.createElement('div');
-            newBtnContainer.style.textAlign = 'center';
-            newBtnContainer.style.marginTop = '16px';
-            const newBtn = document.createElement('button');
-            newBtn.className = 'mindy-btn-primary';
-            newBtn.textContent = 'Start New Check-in';
-            newBtn.onclick = () => {
-                isReopenedOld = false;
-                initMindySession();
-            };
-            newBtnContainer.appendChild(newBtn);
-            messagesContainer.insertBefore(newBtnContainer, typingIndicator);
-            scrollToBottom();
-            
-        } catch(e) {}
+            addNote(`Saved conversation · ${data.title}`);
+            data.messages.forEach((m) => addRow(m.sender, m.message));
+            viewingOld = true;
+            conversationId = null;
+            setComposerEnabled(false);
+            const back = document.createElement('button');
+            back.type = 'button';
+            back.className = 'mindy-link-btn';
+            back.textContent = 'Back to current chat';
+            back.addEventListener('click', () => { viewingOld = false; init(); });
+            addNote('This conversation is read-only. ', back);
+            closeHistory();
+        } catch (e) {
+            historyMessage("Couldn't open that conversation.");
+        }
     }
-    
-    window.renameMindyConv = async function(id) {
-        const title = prompt("Enter new title:");
+
+    async function renameConversation(id, current) {
+        const title = window.prompt('Rename conversation', current);
         if (!title || !title.trim()) return;
-        
-        await fetch(`/mindy/conversation/${id}/title`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ title })
-        });
+        try {
+            await api(`/mindy/conversation/${id}/title`, { method: 'PUT', body: JSON.stringify({ title: title.trim().slice(0, 100) }) });
+        } catch (e) { /* list reload below shows the unchanged title */ }
         loadHistory();
-    };
-    
-    window.deleteMindyConv = async function(id) {
-        if (!confirm("Delete this conversation? This will permanently remove this Mindy conversation.")) return;
-        
-        await fetch(`/mindy/conversation/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-CSRFToken': csrfToken }
-        });
+    }
+
+    async function deleteConversation(id) {
+        if (!window.confirm('Delete this conversation? This permanently removes it.')) return;
+        try {
+            await api(`/mindy/conversation/${id}`, { method: 'DELETE' });
+        } catch (e) { /* ignore; list reload shows current state */ }
         loadHistory();
-    };
+    }
+
+    updateComposer();
 });

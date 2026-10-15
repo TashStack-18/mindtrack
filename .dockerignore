@@ -1,0 +1,29 @@
+# Never put secrets or local data into the image.
+.env
+.env.*
+!.env.example
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local tooling and caches
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.gemini/
+.claude/
+screenshots/
+tests/
+
+# Deployment config not needed inside the container
+firebase.json
+.firebaserc
+firebase-public/
+.firebase/
+Dockerfile
+.dockerignore
+.gcloudignore

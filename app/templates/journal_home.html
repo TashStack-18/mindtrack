@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% from 'macros/mood.html' import mood_face, mood_face_defs %}
+
+{% block title %}Journal - MindTrack{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_insights.css') }}">
+{% endblock %}
+
+{% block content %}
+{{ mood_face_defs() }}
+<div class="mt-page">
+    <header class="mt-page-head">
+        <div class="mt-page-title">
+            <span class="mt-page-icon" aria-hidden="true">{{ render_icon("journal", 22) }}</span>
+            <div>
+                <h1>Journal</h1>
+                <p>A cozy space to capture your moments.</p>
+            </div>
+        </div>
+        <div class="mt-head-actions">
+            <a href="{{ url_for('journal.history') }}" class="mt-btn mt-btn-ghost">All entries</a>
+            <a href="{{ url_for('journal.create') }}" class="mt-btn mt-btn-primary">+ Write a full entry</a>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="mt-alert mt-alert-{{ 'error' if category == 'error' else 'success' }}" role="status">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="jr-top">
+        <!-- Daily check-in -->
+        <section class="mt-card jr-checkin" aria-labelledby="jr-intro-title">
+            <div class="jr-intro">
+                <div>
+                    <h2 id="jr-intro-title">Your little corner of the day</h2>
+                    <p>Capture what happened, how it felt, and what stayed with you.</p>
+                </div>
+                <svg class="jr-illustration" viewBox="0 0 160 110" aria-hidden="true">
+                    <path d="M26 82c10-30 30-40 40-36" stroke="#c9bfe9" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <path d="M30 70c-8-3-12-10-10-16 8 2 12 9 10 16Z" fill="#d9eadf"/>
+                    <rect x="52" y="22" width="62" height="74" rx="10" fill="#e4dcfb"/>
+                    <rect x="58" y="22" width="56" height="74" rx="8" fill="#f1ecfd" stroke="#cfc3f3"/>
+                    <circle cx="78" cy="56" r="2.4" fill="#5a4c9a"/><circle cx="94" cy="56" r="2.4" fill="#5a4c9a"/>
+                    <path d="M80 64q6 5 12 0" stroke="#5a4c9a" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <rect x="120" y="30" width="7" height="58" rx="3" transform="rotate(18 123 59)" fill="#a998e6"/>
+                    <path d="M132 22l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#f2c96a"/>
+                    <path d="M42 26l1.5 3.5 3.5 1.5-3.5 1.5L42 36l-1.5-3.5L37 31l3.5-1.5Z" fill="#f4a7c1"/>
+                </svg>
+            </div>
+
+            {% if errors.form %}<div class="mt-alert mt-alert-error" role="alert">{{ errors.form }}</div>{% endif %}
+
+            <form method="post" action="{{ url_for('journal.checkin') }}" class="jr-form" id="checkin-form" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="nonce" value="{{ nonce }}">
+
+                <fieldset class="jr-moods" {% if errors.mood %}aria-describedby="mood-error"{% endif %}>
+                    <legend><span class="jr-today-tag">Today</span> How are you feeling right now?</legend>
+                    <div class="jr-mood-grid">
+                        {% for level in [5, 4, 3, 2, 1] %}
+                        <label class="jr-mood">
+                            <input type="radio" name="mood" value="{{ level }}" required {% if form.mood == level|string %}checked{% endif %}>
+                            <span class="jr-mood-inner">
+                                {{ mood_face(level, 46) }}
+                                <span class="jr-mood-label">{{ mood_labels[level] }}</span>
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if errors.mood %}<p class="mt-field-error" id="mood-error">{{ errors.mood }}</p>{% endif %}
+                </fieldset>
+
+                <div class="jr-field">
+                    <label for="checkin-note">What's been on your mind today? <span class="mt-optional">Optional</span></label>
+                    <textarea id="checkin-note" name="note" rows="3" maxlength="{{ text_max }}" placeholder="A few words is plenty. “A little tired, but proud of myself.”" {% if errors.note %}aria-describedby="note-error"{% endif %}>{{ form.note or '' }}</textarea>
+                    {% if errors.note %}<p class="mt-field-error" id="note-error">{{ errors.note }}</p>{% endif %}
+                </div>
+
+                <fieldset class="jr-field jr-contexts">
+                    <legend>What was around you? <span class="mt-optional">Optional · pick any</span></legend>
+                    <div class="mt-chips">
+                        {% for value, label in context_tags %}
+                        <label class="mt-chip-check">
+                            <input type="checkbox" name="contexts" value="{{ value }}" {% if value in (form.contexts or []) %}checked{% endif %}>
+                            <span>{{ label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                <div class="jr-submit">
+                    <p>{{ render_icon("sparkles", 16) }} Saved privately to your journal. Your note is encrypted.</p>
+                    <button type="submit" class="mt-btn mt-btn-primary" id="checkin-submit">Save check-in</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Today + reflection -->
+        <aside class="jr-side">
+            <section class="mt-card jr-today" aria-labelledby="jr-today-title">
+                <h2 id="jr-today-title">{{ render_icon("calendar", 18) }} Today, {{ today.strftime('%A %d %B').replace(' 0', ' ') }}</h2>
+                {% if today_cards %}
+                    <p class="jr-muted">You've checked in {{ today_cards|length }} {{ 'time' if today_cards|length == 1 else 'times' }} today. You can always add another.</p>
+                    <ul class="jr-today-list">
+                        {% for c in today_cards %}
+                        <li>
+                            {{ mood_face(c.entry.mood_score, 28) }}
+                            <span><strong>{{ c.entry.mood_label }}</strong> at {{ c.when.strftime('%I:%M %p').lstrip('0') }}</span>
+                            <a href="{{ url_for('journal.edit', id=c.entry.id) }}">Edit</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="jr-muted">No check-in yet today. Whenever you're ready.</p>
+                {% endif %}
+                <div class="jr-week" aria-label="Check-ins this week">
+                    {% for d in week %}
+                    <span class="{% if d.done %}is-done{% endif %} {% if d.is_today %}is-today{% endif %}">
+                        <i aria-hidden="true">{% if d.done %}✓{% endif %}</i>
+                        {{ d.date.strftime('%a')[0] }}
+                        <span class="mt-sr">{{ d.date.strftime('%A') }}: {{ 'checked in' if d.done else 'no check-in' }}</span>
+                    </span>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="mt-card jr-reflection" aria-labelledby="jr-reflect-title">
+                <h2 id="jr-reflect-title">{{ render_icon("sparkles", 18) }} A thought worth keeping</h2>
+                <p class="jr-prompt">{{ reflection.prompt }}</p>
+                {% if reflection.personal %}
+                    <p class="jr-muted">Based on your latest entry.</p>
+                    <a class="mt-link" href="{{ url_for('journal.reflect', id=reflection.entry.id) }}">Reflect on it {{ render_icon("arrow", 14) }}</a>
+                {% else %}
+                    <p class="jr-muted">A gentle prompt for today. Answer it in your next check-in if you like.</p>
+                {% endif %}
+            </section>
+        </aside>
+    </div>
+
+    <!-- Recent entries -->
+    <section class="jr-recent" aria-labelledby="jr-recent-title">
+        <div class="mt-section-head">
+            <h2 id="jr-recent-title">Recent Entries</h2>
+            {% if total %}<a class="mt-link" href="{{ url_for('journal.history') }}">View all {{ total }} {{ render_icon("arrow", 14) }}</a>{% endif %}
+        </div>
+
+        {% if cards %}
+        <div class="jr-entry-grid">
+            {% for c in cards %}
+            <article class="mt-card jr-entry" id="entry-{{ c.entry.id }}">
+                <div class="jr-entry-mood">
+                    {{ mood_face(c.entry.mood_score, 44) }}
+                    <span>{{ c.entry.mood_label }}</span>
+                </div>
+                <div class="jr-entry-body">
+                    <time datetime="{{ c.when.isoformat() }}">{{ c.when.strftime('%b %d · %I:%M %p').replace(' 0', ' ') }}</time>
+                    <h3><a href="{{ url_for('journal.detail', id=c.entry.id) }}">{{ c.entry.title }}</a></h3>
+                    {% if c.preview %}<p>{{ c.preview }}</p>{% else %}<p class="jr-muted">Mood-only check-in.</p>{% endif %}
+                    {% if c.contexts or c.feelings %}
+                    <div class="mt-tags">
+                        {% for t in c.contexts %}<span class="mt-tag">{{ t }}</span>{% endfor %}
+                        {% for f in c.feelings %}<span class="mt-tag mt-tag-soft">{{ f|capitalize }}</span>{% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="jr-entry-actions">
+                        <a href="{{ url_for('journal.detail', id=c.entry.id) }}">Open</a>
+                        <a href="{{ url_for('journal.edit', id=c.entry.id) }}">Edit</a>
+                        <form method="post" action="{{ url_for('journal.delete', id=c.entry.id) }}" onsubmit="return confirm('Delete this entry? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="mt-card mt-empty">
+            {{ mood_face(3, 56) }}
+            <h3>Your journal is waiting for its first page</h3>
+            <p>Pick a mood above and save your first check-in. A single word is a perfectly good start.</p>
+            <a href="#checkin-form" class="mt-btn mt-btn-primary">Start a check-in</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Prevent accidental double-submits; the server also rejects reused forms.
+    document.getElementById('checkin-form')?.addEventListener('submit', (e) => {
+        const form = e.currentTarget;
+        if (!form.querySelector('input[name="mood"]:checked')) {
+            e.preventDefault();
+            let err = document.getElementById('mood-error');
+            if (!err) {
+                err = document.createElement('p');
+                err.id = 'mood-error';
+                err.className = 'mt-field-error';
+                form.querySelector('.jr-moods').appendChild(err);
+            }
+            err.textContent = 'Pick the mood that feels closest to right now.';
+            form.querySelector('input[name="mood"]').focus();
+            return;
+        }
+        const btn = document.getElementById('checkin-submit');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+    });
+</script>
+{% endblock %}

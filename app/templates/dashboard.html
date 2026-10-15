@@ -8,11 +8,11 @@
         <article class="hero">
             <div class="hero-copy">
                 <p class="hero-greeting">{{ greeting_time }},</p>
-                <h1>{{ g.user.name.split(" ")[0] }} <span>♡</span></h1>
+                <h1>{{ g.user.name.split(" ")[0] }} <span aria-hidden="true">♡</span></h1>
                 <p class="hero-question">How are you feeling today?</p>
                 <p>Your feelings matter. Take a moment for yourself.</p>
             </div>
-            <p class="hero-note">you got<br />this ♡</p>
+            <p class="hero-note" aria-hidden="true">you got<br />this ♡</p>
         </article>
 
         <section class="mood-section" aria-labelledby="mood-title">
@@ -28,35 +28,35 @@
                 <div id="hidden-feelings-container"></div>
 
                 <div class="mood-grid">
-                    <button type="button" class="mood-card violet" data-mood="1" onclick="selectMood(this, 1)">
+                    <button type="button" class="mood-card violet" data-mood="1" aria-pressed="false" onclick="selectMood(this, 1)">
                         <span class="mood-face low" aria-hidden="true">
                             <i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i>
                         </span>
                         <strong>Very Low</strong>
                         <span>Really struggling today</span>
                     </button>
-                    <button type="button" class="mood-card blue" data-mood="2" onclick="selectMood(this, 2)">
+                    <button type="button" class="mood-card blue" data-mood="2" aria-pressed="false" onclick="selectMood(this, 2)">
                         <span class="mood-face blue" aria-hidden="true" style="--face: #68b7ed;">
                             <i class="eye left"></i><i class="eye right"></i><i class="mouth frown"></i>
                         </span>
                         <strong>Low</strong>
                         <span>Not my best self</span>
                     </button>
-                    <button type="button" class="mood-card yellow" data-mood="3" onclick="selectMood(this, 3)">
+                    <button type="button" class="mood-card yellow" data-mood="3" aria-pressed="false" onclick="selectMood(this, 3)">
                         <span class="mood-face okay" aria-hidden="true">
                             <i class="eye left"></i><i class="eye right"></i><i class="mouth flat"></i>
                         </span>
                         <strong>Okay</strong>
                         <span>Just existing</span>
                     </button>
-                    <button type="button" class="mood-card green" data-mood="4" onclick="selectMood(this, 4)">
+                    <button type="button" class="mood-card green" data-mood="4" aria-pressed="false" onclick="selectMood(this, 4)">
                         <span class="mood-face good" aria-hidden="true" style="--face: #7dcbb0;">
                             <i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i>
                         </span>
                         <strong>Good</strong>
                         <span>Feeling positive</span>
                     </button>
-                    <button type="button" class="mood-card pink" data-mood="5" onclick="selectMood(this, 5)">
+                    <button type="button" class="mood-card pink" data-mood="5" aria-pressed="false" onclick="selectMood(this, 5)">
                         <span class="mood-face great" aria-hidden="true">
                             <i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i><b class="heart one">♥</b><b class="heart two">♥</b>
                         </span>
@@ -82,18 +82,18 @@
             <article class="content-card journey-card">
                 <div class="card-title">
                     <div><span class="title-icon">{{ render_icon("insights", 17) }}</span><h2>Your Mood Journey</h2></div>
-                    <a href="{{ url_for('insights.index') }}" style="color: inherit; text-decoration: none;"><button type="button">View all {{ render_icon("arrow", 14) }}</button></a>
+                    <a class="card-link" href="{{ url_for('insights.index') }}">View all {{ render_icon("arrow", 14) }}</a>
                 </div>
 
                 {% if chart_scores and chart_scores|length > 0 %}
                 <div class="chart-wrap">
-                    <div class="scale" aria-hidden="true"><span>Great</span><span>Good</span><span>Okay</span><span>Low</span></div>
-                    <canvas id="moodChart" style="width: 100%; height: 182px;"></canvas>
+                    <canvas id="moodChart" role="img" aria-label="Line chart of your last {{ chart_scores|length }} recorded moods"></canvas>
                 </div>
                 {% else %}
-                <div style="text-align: center; padding: 2rem 0;">
-                    <p class="text-muted" style="margin-bottom: 1rem;">Not enough data yet.</p>
-                    <p class="text-muted" style="font-size: 0.9rem;">Your mood history will appear here once you start journaling.</p>
+                <div class="empty-state">
+                    <p class="empty-title">No mood history yet</p>
+                    <p>Your mood journey will appear here after your first few check-ins.</p>
+                    <a class="empty-cta" href="{{ url_for('journal.index') }}">Check in now {{ render_icon("arrow", 14) }}</a>
                 </div>
                 {% endif %}
             </article>
@@ -101,12 +101,12 @@
             <article class="content-card moments-card">
                 <div class="card-title">
                     <div><span class="title-icon">{{ render_icon("journal", 17) }}</span><h2>Recent Moments</h2></div>
-                    <a href="{{ url_for('journal.history') }}" style="color: inherit; text-decoration: none;"><button type="button">View all {{ render_icon("arrow", 14) }}</button></a>
+                    <a class="card-link" href="{{ url_for('journal.history') }}">View all {{ render_icon("arrow", 14) }}</a>
                 </div>
                 <div class="moments">
                     {% if recent_entries %}
-                        {% for entry in recent_entries %}
-                        <button class="moment" onclick="window.location.href='{{ url_for('journal.detail', id=entry.id) }}'">
+                        {% for entry in recent_entries[:5] %}
+                        <a class="moment" href="{{ url_for('journal.detail', id=entry.id) }}">
                             {% if entry.mood_score == 5 %}
                                 <span class="mood-face great" aria-hidden="true"><i class="eye left"></i><i class="eye right"></i><i class="mouth smile"></i></span>
                             {% elif entry.mood_score == 4 %}
@@ -122,14 +122,16 @@
                             <span>
                                 <strong>{{ entry.title }}</strong>
                                 <small>{{ entry.preview_text }}</small>
-                                <time>{{ entry.created_at.strftime("%A, %I:%M %p") }}</time>
+                                <time datetime="{{ entry.local_time.isoformat() }}">{{ entry.local_time.strftime("%A, %I:%M %p") }}</time>
                             </span>
                             {{ render_icon("chevron", 16) }}
-                        </button>
+                        </a>
                         {% endfor %}
                     {% else %}
-                        <div style="text-align: center; padding: 1.5rem 0;">
-                            <p style="color: var(--muted); font-size: 11px;">Your journal is empty.</p>
+                        <div class="empty-state">
+                            <p class="empty-title">Your journal is empty</p>
+                            <p>Your recent entries will show up here.</p>
+                            <a class="empty-cta" href="{{ url_for('journal.create') }}">Write your first entry {{ render_icon("arrow", 14) }}</a>
                         </div>
                     {% endif %}
                 </div>
@@ -139,42 +141,53 @@
 
     <aside class="right-column">
         <article class="side-card checkin">
-            <div class="side-card-title"><span>⌁</span><h2>Today's Check-in</h2></div>
+            <div class="side-card-title"><span aria-hidden="true">{{ render_icon("calendar", 18) }}</span><h2>Today's Check-in</h2></div>
+            {% if today_entry %}
+            <p>You've checked in today. You can always add another.</p>
+            <a class="checkin-action is-done" href="{{ url_for('journal.detail', id=today_entry.id) }}">
+                <span class="mood-face" aria-hidden="true" style="--face: {{ {1: '#a98be7', 2: '#6fb3ea', 3: '#f2c75c', 4: '#74c7a5', 5: '#ee7ba3'}[today_entry.mood_score] }};"><i class="eye left"></i><i class="eye right"></i><i class="mouth {{ 'frown' if today_entry.mood_score <= 2 else 'flat' if today_entry.mood_score == 3 else 'smile' }}"></i></span>
+                <span><strong>{{ today_entry.mood_label }}</strong> · {{ today_entry.local_time.strftime("%I:%M %p").lstrip("0") }}</span>
+                {{ render_icon("arrow", 15) }}
+            </a>
+            {% else %}
             <p>How are you feeling today?</p>
-            <button onclick="document.getElementById('mood-title')?.scrollIntoView({ behavior: 'smooth' })">
+            <button type="button" class="checkin-action" data-scroll-to="mood-title">
                 <span class="mood-face okay" aria-hidden="true" id="checkin-face" style="--face: #d8cdf6;"><i class="eye left"></i><i class="eye right"></i><i class="mouth flat"></i></span>
                 <span id="checkin-text">Not checked in yet</span>
                 {{ render_icon("arrow", 15) }}
             </button>
-            <div class="valid-note"><span>Your feelings<br />are valid</span><b>♡</b></div>
+            {% endif %}
+            <p class="valid-note" aria-hidden="true">Your feelings are valid ♡</p>
         </article>
 
         <article class="side-card consistency">
-            <div class="side-card-title"><span>✦</span><h2>Mood Consistency</h2></div>
-            <strong>{{ consistency_days }} <small>days this week</small></strong>
+            <div class="side-card-title"><span aria-hidden="true">{{ render_icon("sparkles", 18) }}</span><h2>Mood Consistency</h2></div>
+            <strong>{{ consistency_days }} <small>{{ 'day' if consistency_days == 1 else 'days' }} this week</small></strong>
             <p>One gentle moment at a time.</p>
-            <div class="week-dots">
+            <div class="week-dots" role="list" aria-label="Check-ins this week">
                 {% for d in this_week %}
-                    <span><i class="{% if d.count > 0 %}done{% endif %}">{% if d.count > 0 %}✓{% endif %}</i>{{ d.day_name[0] }}</span>
+                    <span role="listitem" class="{% if d.is_today %}is-today{% endif %}"><i class="{% if d.count > 0 %}done{% endif %}" aria-hidden="true">{% if d.count > 0 %}✓{% endif %}</i>{{ d.day_name[0] }}<span class="sr-only">{{ d.date.strftime('%A') }}: {{ 'checked in' if d.count > 0 else 'no check-in' }}</span></span>
                 {% endfor %}
             </div>
         </article>
 
-        <article class="inspiration" style="background-image: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0)), url('{{ url_for('static', filename='img/daily/hero_' ~ hero_idx ~ '.jpg') }}'); background-size: cover; background-position: center; color: white;">
-            <div style="position: relative; z-index: 1;"><p>Better days<br />are coming</p><span>♡</span></div>
-            <small style="position: relative; z-index: 1;">A moment of calm</small>
-        </article>
-
-        <article class="privacy-note">
-            <span>♡</span><div><strong>Your space is private</strong><p>Your entries stay protected and belong only to you.</p></div>
+        <article class="inspiration">
+            <img class="inspiration-photo" src="{{ url_for('static', filename=daily_photo) }}" alt="" width="720" height="720" loading="lazy"
+                 data-daily-photo
+                 data-options='{{ daily_photo_options|tojson }}'
+                 data-static-base="{{ url_for('static', filename='') }}"
+                 data-fallback="{{ url_for('static', filename=daily_photo_fallback) }}">
+            <div class="inspiration-copy"><p>Better days<br />are coming</p><span aria-hidden="true">♡</span></div>
+            <small>A moment of calm</small>
         </article>
     </aside>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/daily_photo.js') }}"></script>
 {% if chart_scores and chart_scores|length > 0 %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById("moodChart").getContext("2d");
@@ -182,7 +195,7 @@
         const chartScores = {{ chart_scores|tojson }};
 
         let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, "rgba(137, 117, 217, 0.5)");
+        gradient.addColorStop(0, "rgba(121, 101, 193, 0.28)");
         gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
 
         new Chart(ctx, {
@@ -192,11 +205,12 @@
                 datasets: [{
                     label: "Mood Score",
                     data: chartScores,
-                    borderColor: "#8975d9",
+                    borderColor: "#7965C1",
                     backgroundColor: gradient,
-                    borderWidth: 3,
-                    pointBackgroundColor: "#EE75B9",
-                    pointBorderColor: "#fff",
+                    borderWidth: 2.5,
+                    pointBackgroundColor: "#fff",
+                    pointBorderColor: "#7965C1",
+                    pointBorderWidth: 2,
                     pointRadius: 4,
                     fill: true,
                     tension: 0.4
@@ -214,14 +228,16 @@
                         max: 5,
                         ticks: {
                             stepSize: 1,
+                            color: "#777187",
+                            font: { family: "Inter", size: 12 },
                             callback: function(value) {
                                 const labels = {1: "Very Low", 2: "Low", 3: "Okay", 4: "Good", 5: "Great"};
                                 return labels[value];
                             }
                         },
-                        grid: { borderDash: [4, 4] }
+                        grid: { color: "#EFEAF5" }
                     },
-                    x: { grid: { display: false } }
+                    x: { grid: { display: false }, ticks: { color: "#777187", font: { family: "Inter", size: 12 }, maxRotation: 0, autoSkip: true } }
                 }
             }
         });
@@ -231,6 +247,10 @@
 
 <script>
     let selectedFeelings = [];
+
+    document.querySelectorAll("[data-scroll-to]").forEach(btn => {
+        btn.addEventListener("click", () => document.getElementById(btn.dataset.scrollTo)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    });
 
     function selectMood(btn, score) {
         // Update input
@@ -243,7 +263,9 @@
             if (em) em.remove();
         });
 
+        document.querySelectorAll(".mood-card").forEach(c => c.setAttribute("aria-pressed", "false"));
         btn.classList.add("selected");
+        btn.setAttribute("aria-pressed", "true");
         const em = document.createElement("em");
         em.innerText = "Selected";
         btn.appendChild(em);
@@ -254,7 +276,8 @@
 
         // Update check-in card
         const labels = {1: "Very Low", 2: "Low", 3: "Okay", 4: "Good", 5: "Great"};
-        document.getElementById("checkin-text").innerText = labels[score] + " selected";
+        const checkinText = document.getElementById("checkin-text");
+        if (checkinText) checkinText.innerText = labels[score] + " selected";
     }
 
     function toggleEmotion(btn) {

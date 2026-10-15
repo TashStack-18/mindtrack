@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="mt-tz" content="{{ session.get('tz_offset', '') }}">
+    <script>document.documentElement.classList.add("js");</script>
     <title>{% block title %}MindTrack | Calm, Privacy-First Mood Journal{% endblock %}</title>
 
     <!-- Custom CSS -->
@@ -11,74 +13,84 @@
     {% if g.user %}
     <link rel="stylesheet" href="{{ url_for("static", filename="css/mindy.css") }}">
     {% endif %}
+    {% block head %}{% endblock %}
 </head>
 <body>
     {% from "partials/icons.html" import render_icon %}
     {% if g.user %}
     <div class="app-shell">
+        {% set ep = request.endpoint or "" %}
+        {% set nav_items = [
+            ("dashboard.dashboard_view", "home", "Home", ep == "dashboard.dashboard_view"),
+            ("journal.index", "journal", "Journal", ep.startswith("journal.")),
+            ("insights.index", "insights", "Insights", ep.startswith("insights.")),
+            ("reports.index", "reports", "Reports", ep.startswith("reports.")),
+        ] %}
         <aside class="sidebar">
-            <div>
-                <a href="{{ url_for("dashboard.dashboard_view") }}" class="brand" style="text-decoration: none;">
-                    <span class="brand-mark" aria-hidden="true">
-                        <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
-                    </span>
-                    <span><strong>MindTrack</strong><small>Better Mind + Brighter You</small></span>
+            <a href="{{ url_for("dashboard.dashboard_view") }}" class="brand" aria-label="MindTrack home">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
+                </span>
+                <span><strong>MindTrack</strong><small>Better Mind + Brighter You</small></span>
+            </a>
+            <nav class="side-nav" aria-label="Primary navigation">
+                {% for endpoint, icon, label, is_active in nav_items %}
+                <a href="{{ url_for(endpoint) }}" class="{% if is_active %}active{% endif %}" {% if is_active %}aria-current="page"{% endif %}>
+                    {{ render_icon(icon) }}<span>{{ label }}</span>
                 </a>
-                <nav class="side-nav" aria-label="Primary navigation">
-                    <a href="{{ url_for("dashboard.dashboard_view") }}" class="{% if request.endpoint == "dashboard.dashboard_view" %}active{% endif %}" style="text-decoration: none;">
-                        {{ render_icon("home") }}<span>Home</span>
-                    </a>
-                    <a href="{{ url_for("journal.history") }}" class="{% if request.endpoint and request.endpoint.startswith("journal.") %}active{% endif %}" style="text-decoration: none;">
-                        {{ render_icon("journal") }}<span>Journal</span>
-                    </a>
-                    <a href="{{ url_for("insights.index") }}" class="{% if request.endpoint == "insights.index" %}active{% endif %}" style="text-decoration: none;">
-                        {{ render_icon("insights") }}<span>Insights</span>
-                    </a>
-                    <a href="{{ url_for("reports.index") }}" class="{% if request.endpoint and request.endpoint.startswith("reports.") %}active{% endif %}" style="text-decoration: none;">
-                        {{ render_icon("reports") }}<span>Reports</span>
-                    </a>
-                    <a href="#" onclick="document.getElementById('mindy-launcher').click(); return false;" class="{% if request.endpoint and request.endpoint.startswith('mindy.') %}active{% endif %}" style="text-decoration: none;">
-                        {{ render_icon("mindy") }}<span>Mindy</span>
-                    </a>
-                </nav>
-            </div>
-            <div class="sidebar-affirmation" aria-label="Small steps make big changes">
-                <svg viewBox="0 0 80 108" aria-hidden="true"><path d="M38 104C36 74 38 43 57 11M38 77C21 67 18 53 18 39c13 6 19 18 20 38ZM43 57c0-16 7-28 22-35 0 15-5 27-22 35ZM50 35c-1-10 3-19 13-26 2 11-2 20-13 26Z" /></svg>
+                {% endfor %}
+                <button type="button" data-open-mindy>
+                    {{ render_icon("mindy") }}<span>Mindy</span>
+                </button>
+            </nav>
+            <div class="sidebar-affirmation" aria-hidden="true">
+                <svg viewBox="0 0 80 108"><path d="M38 104C36 74 38 43 57 11M38 77C21 67 18 53 18 39c13 6 19 18 20 38ZM43 57c0-16 7-28 22-35 0 15-5 27-22 35ZM50 35c-1-10 3-19 13-26 2 11-2 20-13 26Z" /></svg>
                 <p>Small steps<br />make big<br />changes <span>♡</span></p>
             </div>
         </aside>
 
         <main class="workspace">
             <header class="topbar">
-                <form action="{{ url_for("journal.history") }}" method="GET" style="margin: 0; padding: 0; width: min(460px, 52%);">
+                <form class="search-form" action="{{ url_for("journal.history") }}" method="GET" role="search">
                     <label class="search">
                         {{ render_icon("search", 18) }}
-                        <input type="text" name="q" aria-label="Search your thoughts" placeholder="Search your thoughts..." value="{{ request.args.get("q", "") }}">
+                        <input type="search" name="q" aria-label="Search your journal titles" placeholder="Search your thoughts…" value="{{ request.args.get("q", "") }}">
                     </label>
                 </form>
                 <div class="account">
-                    <button class="icon-button" aria-label="Notifications">{{ render_icon("bell") }}<span class="notification-dot"></span></button>
-                    <a href="{{ url_for("auth.logout") }}" class="profile-button" style="text-decoration: none; color: inherit;">
-                        <span class="avatar" aria-hidden="true">{{ g.user.name[0].upper() }}</span>
-                        <span>{{ g.user.name }}</span>{{ render_icon("chevron", 16) }}
-                    </a>
+                    <div class="profile-menu" data-profile-menu>
+                        <button type="button" class="profile-button" id="profile-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu-list">
+                            <span class="avatar" aria-hidden="true">{{ g.user.name[0].upper() }}</span>
+                            <span>{{ g.user.name }}</span>{{ render_icon("chevron", 16) }}
+                        </button>
+                        <div class="profile-dropdown" id="profile-menu-list" role="menu" aria-labelledby="profile-menu-button" hidden>
+                            <a role="menuitem" href="{{ url_for("auth.profile") }}" class="{% if request.endpoint == "auth.profile" %}is-current{% endif %}">{{ render_icon("user", 18) }}<span>My Profile</span></a>
+                            <hr class="profile-dropdown-sep" role="separator">
+                            <a role="menuitem" href="{{ url_for("auth.logout") }}" class="is-danger">{{ render_icon("logout", 18) }}<span>Log Out</span></a>
+                        </div>
+                    </div>
                 </div>
             </header>
     {% else %}
     <div class="unauth-wrapper">
         <header class="unauth-navbar">
-            <a href="{{ url_for("dashboard.index") }}" class="brand" style="margin-bottom: 0; text-decoration: none;">
-                <span class="brand-mark" aria-hidden="true">
-                    <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
-                </span>
-                <span><strong>MindTrack</strong></span>
-            </a>
-            <nav style="display: flex; gap: 1.5rem; align-items: center;">
-                <a href="{{ url_for("auth.login") }}" style="color: var(--muted); font-weight: 500; text-decoration: none;">Log In</a>
-                <a href="{{ url_for("auth.register") }}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; background: var(--primary-dark); color: white; border-radius: 13px; text-decoration: none;">Start Journaling</a>
-            </nav>
+            <div class="unauth-navbar-inner">
+                <a href="{{ url_for("dashboard.index") }}" class="brand" aria-label="MindTrack home">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 48 42"><path d="M24 37C18 29 6 25 6 14 6 5 18 2 24 11 30 2 42 5 42 14c0 11-12 15-18 23Z" /><path d="M18 22c7-1 12-5 16-12M28 14c3 0 5 1 7 3" /></svg>
+                    </span>
+                    <span><strong>MindTrack</strong></span>
+                </a>
+                <button type="button" class="unauth-nav-toggle" aria-expanded="false" aria-controls="unauth-nav-links" aria-label="Open menu">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+                </button>
+                <nav class="unauth-nav-links" id="unauth-nav-links" aria-label="Account">
+                    <a href="{{ url_for("auth.login") }}" class="unauth-nav-login{% if request.endpoint == "auth.login" %} is-current{% endif %}">Log In</a>
+                    <a href="{{ url_for("auth.register") }}" class="unauth-nav-cta">Start Journaling</a>
+                </nav>
+            </div>
         </header>
-        <main class="page-container" style="padding: 2rem;">
+        <main class="{% block main_class %}page-container{% endblock %}">
     {% endif %}
 
             {% block content %}{% endblock %}
@@ -88,15 +100,15 @@
 
         <!-- Mobile nav -->
         <nav class="mobile-nav" aria-label="Mobile navigation">
-            <a href="{{ url_for("dashboard.dashboard_view") }}" class="{% if request.endpoint == "dashboard.dashboard_view" %}active{% endif %}">{{ render_icon("home", 20) }}<span>Home</span></a>
-            <a href="{{ url_for("journal.history") }}" class="{% if request.endpoint and request.endpoint.startswith("journal.") %}active{% endif %}">{{ render_icon("journal", 20) }}<span>Journal</span></a>
-            <a href="{{ url_for("insights.index") }}" class="{% if request.endpoint == "insights.index" %}active{% endif %}">{{ render_icon("insights", 20) }}<span>Insights</span></a>
-            <a href="{{ url_for("reports.index") }}" class="{% if request.endpoint and request.endpoint.startswith("reports.") %}active{% endif %}">{{ render_icon("reports", 20) }}<span>Reports</span></a>
-            <a href="#" onclick="document.getElementById('mindy-launcher').click(); return false;" class="{% if request.endpoint and request.endpoint.startswith('mindy.') %}active{% endif %}">{{ render_icon("mindy", 20) }}<span>Mindy</span></a>
+            {% for endpoint, icon, label, is_active in nav_items %}
+            <a href="{{ url_for(endpoint) }}" class="{% if is_active %}active{% endif %}" {% if is_active %}aria-current="page"{% endif %}>{{ render_icon(icon, 20) }}<span>{{ label }}</span></a>
+            {% endfor %}
+            <button type="button" data-open-mindy>{{ render_icon("mindy", 20) }}<span>Mindy</span></button>
         </nav>
     </div>
     {% else %}
         </main>
+        {% block footer %}{% endblock %}
     </div>
     {% endif %}
 

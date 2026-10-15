@@ -71,7 +71,7 @@
         <div style="margin-bottom: 4rem; text-align: center;">
             <p style="font-weight: 700; margin-bottom: 1.5rem; font-size: 1.2rem;">What was around you?</p>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; max-width: 600px; margin: 0 auto 1.5rem auto;">
-                {% set predefined_tags = ['Academics', 'Sleep', 'Friends/Social', 'Family', 'Work', 'Exercise', 'Finance', 'Other'] %}
+                {% set predefined_tags = context_tags or ['Study', 'Friends', 'Family', 'Home', 'Sleep', 'Health', 'Work', 'Achievement', 'Other'] %}
                 {% set current_tag_names = entry.tags|map(attribute='name')|list if entry else [] %}
                 {% for t in predefined_tags %}
                 <label>

@@ -6,3 +6,8 @@ instance/
 .venv/
 venv/
 *.db
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+.firebase/

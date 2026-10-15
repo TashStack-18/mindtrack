@@ -22,6 +22,10 @@ MindTrack is a privacy-first web application that allows users to privately reco
 5. Copy `.env.example` to `.env` and fill in the values
 6. Run the application: `python run.py`
 
+## Deployment
+Production runs on Google Cloud Run (Gunicorn) behind Firebase Hosting, with Cloud SQL PostgreSQL.
+See [DEPLOYMENT.md](DEPLOYMENT.md). `python run.py` remains the local development server.
+
 ## Features
 - Secure authentication
 - Encrypted journal storage

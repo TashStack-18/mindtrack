@@ -15,9 +15,15 @@ def index():
 def dashboard_view():
     from app.models.journal import JournalEntry
     from app.services.insight_service import generate_insights
+    from app.services.time_service import tz_offset_minutes, to_local
+
+    # Dates and greeting follow the user's local clock (timestamps are stored in UTC).
+    offset = tz_offset_minutes()
+    local_now = to_local(datetime.utcnow(), offset)
+    local_day = lambda e: to_local(e.created_at, offset).date()
 
     # Time aware greeting and key for Your Day cards
-    hour = datetime.now().hour
+    hour = local_now.hour
     if hour < 12:
         greeting_time = "Good morning"
         time_of_day_key = "morning"
@@ -36,8 +42,8 @@ def dashboard_view():
     all_entries = list(reversed(all_entries_asc))
 
     # Check if checked in today
-    today = datetime.now().date()
-    checked_in_today = any(e.created_at.date() == today for e in recent_entries) if recent_entries else False
+    today = local_now.date()
+    checked_in_today = any(local_day(e) == today for e in recent_entries) if recent_entries else False
     today_entry = recent_entries[0] if checked_in_today else None
 
     # Current calendar week (Monday to Sunday)
@@ -46,7 +52,7 @@ def dashboard_view():
     for i in range(7):
         d = start_of_week + timedelta(days=i)
         # Get all entries for this day
-        day_entries = [e for e in all_entries if e.created_at.date() == d]
+        day_entries = [e for e in all_entries if local_day(e) == d]
         # Most recent entry for the day is the first one in the filtered list (since all_entries is ordered desc)
         latest_entry = day_entries[0] if day_entries else None
         this_week.append({
@@ -65,41 +71,26 @@ def dashboard_view():
 
     reflection_prompt = "Is there another way to look at how you're feeling right now?"
     if recent_entries:
-        from app.services.reflection_service import generate_prompt
-        reflection_prompt = generate_prompt(recent_entries[0])
+        from app.services.reflection_service import prompt_for_entry
+        reflection_prompt = prompt_for_entry(recent_entries[0])
 
-    from flask import session
-    import random
-
-    hero_idx = session.get('hero_idx')
-    mot_idx = session.get('mot_idx')
-
-    if not hero_idx or not mot_idx:
-        hero_choices = [i for i in range(1, 31) if i != g.user.last_hero_idx]
-        hero_idx = random.choice(hero_choices) if hero_choices else 1
-
-        mot_choices = [i for i in range(1, 31) if i != g.user.last_mot_idx and i != hero_idx]
-        if not mot_choices:
-            mot_choices = [i for i in range(1, 31) if i != g.user.last_mot_idx]
-        mot_idx = random.choice(mot_choices) if mot_choices else 2
-
-        session['hero_idx'] = hero_idx
-        session['mot_idx'] = mot_idx
-
-        from app.extensions import db
-        g.user.last_hero_idx = hero_idx
-        g.user.last_mot_idx = mot_idx
-        db.session.commit()
+    # Daily inspirational photo: chosen from the calendar date, not at random,
+    # so it stays the same all day. The browser re-applies this with the local date.
+    from app.services.inspiration_service import image_for_date, all_image_paths, INSPIRATION_DIR, FALLBACK_IMAGE
+    daily_photo = image_for_date()
+    daily_photo_options = all_image_paths()
+    daily_photo_fallback = INSPIRATION_DIR + FALLBACK_IMAGE
 
     # Prepare chart data
     chart_dates = []
     chart_scores = []
     for entry in all_entries_asc[-14:]: # last 14 entries
-        chart_dates.append(entry.created_at.strftime('%b %d'))
+        chart_dates.append(to_local(entry.created_at, offset).strftime('%b %d'))
         chart_scores.append(entry.mood_score)
 
     from app.services.encryption_service import decrypt_text
     for entry in recent_entries:
+        entry.local_time = to_local(entry.created_at, offset)
         try:
             entry.preview_text = decrypt_text(entry.encrypted_content)
         except Exception:
@@ -120,9 +111,10 @@ def dashboard_view():
         this_week=this_week,
         checked_in_today=checked_in_today,
         today_entry=today_entry,
-        hero_idx=hero_idx,
-        mot_idx=mot_idx,
-        now=datetime.now(),
+        daily_photo=daily_photo,
+        daily_photo_options=daily_photo_options,
+        daily_photo_fallback=daily_photo_fallback,
+        now=local_now,
         chart_dates=chart_dates,
         chart_scores=chart_scores
     )

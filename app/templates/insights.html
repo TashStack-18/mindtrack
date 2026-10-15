@@ -1,113 +1,232 @@
 {% extends 'base.html' %}
+{% from 'macros/mood.html' import mood_face, mood_face_defs %}
 
 {% block title %}Insights - MindTrack{% endblock %}
 
-{% block content %}
-<div style="margin-bottom: 3rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem; font-weight: 700; color: var(--primary);">Insights</h1>
-            <p class="text-muted" style="margin: 0; font-size: 1.1rem;">Discover patterns and understand your well-being.</p>
-        </div>
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_insights.css') }}">
+{% endblock %}
 
-        <form method="get" action="{{ url_for('insights.index') }}" style="display: flex; flex-direction: column; align-items: flex-end;">
-            <label for="range" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">Time Period</label>
-            <div style="position: relative;">
-                <select id="range" name="range" onchange="this.form.submit()" class="form-control" style="padding-right: 2.5rem; appearance: none; font-weight: 500; min-width: 150px; cursor: pointer;">
-                    <option value="7" {% if current_range == '7' %}selected{% endif %}>Last 7 days</option>
-                    <option value="30" {% if current_range == '30' %}selected{% endif %}>Last 30 days</option>
-                    <option value="all" {% if current_range == 'all' %}selected{% endif %}>All time</option>
-                </select>
-                <i data-lucide="chevron-down" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted); pointer-events: none;"></i>
+{% block content %}
+{% set s = view.stats %}
+{% set p = view.period %}
+{{ mood_face_defs() }}
+<div class="mt-page">
+    <header class="mt-page-head">
+        <div class="mt-page-title">
+            <span class="mt-page-icon" aria-hidden="true">{{ render_icon("insights", 22) }}</span>
+            <div>
+                <h1>Things You Might Notice</h1>
+                <p>Patterns aren't answers. They're little clues about your days.</p>
             </div>
-        </form>
+        </div>
+        <nav class="mt-segmented" aria-label="Date range">
+            {% for key, label in [('7', 'Last 7 days'), ('30', 'Last 30 days'), ('all', 'All time')] %}
+            <a href="{{ url_for('insights.index', range=key) }}" {% if current_range == key %}aria-current="page" class="is-active"{% endif %}>{{ label }}</a>
+            {% endfor %}
+        </nav>
+    </header>
+
+    {% if total_entries == 0 %}
+    <div class="mt-card mt-empty">
+        {{ mood_face(3, 56) }}
+        <h3>Nothing to notice yet, and that's okay</h3>
+        <p>Insights are built only from your own check-ins. Once you've logged a few moods, patterns will start to show up here.</p>
+        <a href="{{ url_for('journal.index') }}" class="mt-btn mt-btn-primary">Go to your journal</a>
+    </div>
+    {% else %}
+
+    <p class="in-range-note">Showing <strong>{{ p.label|lower }}</strong> · {{ p.first_day.strftime('%b %d, %Y').replace(' 0', ' ') }} to {{ p.last_day.strftime('%b %d, %Y').replace(' 0', ' ') }} · {{ view.count }} {{ 'check-in' if view.count == 1 else 'check-ins' }}</p>
+
+    <!-- Summary statistics -->
+    <section class="in-stats" aria-label="Summary">
+        <article class="mt-card in-stat">
+            <span class="in-stat-label">{{ render_icon("sparkles", 16) }} Most recorded mood</span>
+            {% if view.count %}
+                <div class="in-stat-main">
+                    {{ mood_face({'Great': 5, 'Good': 4, 'Okay': 3, 'Low': 2, 'Very Low': 1}[s.top_moods[0]], 40) }}
+                    <strong>{{ s.top_moods|join(' & ') }}</strong>
+                </div>
+                <small>{{ s.top_mood_count }} of {{ s.count }} check-ins</small>
+            {% else %}<p class="in-stat-empty">No check-ins in this period.</p>{% endif %}
+        </article>
+
+        <article class="mt-card in-stat">
+            <span class="in-stat-label">{{ render_icon("insights", 16) }} Average mood</span>
+            {% if view.count %}
+                <div class="in-stat-main"><strong>{{ s.average }}</strong><span class="in-stat-unit">/ 5 · around {{ s.average_label }}</span></div>
+                {% if s.average_change is defined %}
+                    <small class="in-change {{ 'is-up' if s.average_change > 0 else 'is-down' if s.average_change < 0 else '' }}">
+                        {% if s.average_change > 0 %}▲ {{ s.average_change }}{% elif s.average_change < 0 %}▼ {{ -s.average_change }}{% else %}No change{% endif %}
+                        vs previous {{ p.days }} days ({{ s.previous_average }})
+                    </small>
+                {% elif p.prev_first %}
+                    <small>Comparison appears once both periods have 3+ check-ins.</small>
+                {% else %}
+                    <small>Scale: 1 Very Low · 5 Great</small>
+                {% endif %}
+            {% else %}<p class="in-stat-empty">Needs at least one check-in.</p>{% endif %}
+        </article>
+
+        <article class="mt-card in-stat">
+            <span class="in-stat-label">♡ Good moments</span>
+            {% if view.count %}
+                <div class="in-stat-main"><strong>{{ s.good_count }}</strong><span class="in-stat-unit">of {{ s.count }} were Good or Great</span></div>
+                <div class="in-meter" role="img" aria-label="{{ s.good_count }} of {{ s.count }} check-ins were Good or Great"><span style="width: {{ (100 * s.good_count / s.count)|round|int }}%"></span></div>
+            {% else %}<p class="in-stat-empty">No check-ins in this period.</p>{% endif %}
+        </article>
+
+        <article class="mt-card in-stat">
+            <span class="in-stat-label">{{ render_icon("calendar", 16) }} Check-ins</span>
+            <div class="in-stat-main"><strong>{{ s.count }}</strong><span class="in-stat-unit">on {{ s.days_with_entries }} of {{ p.days }} days</span></div>
+            {% if s.previous_count is not none %}<small>{{ s.previous_count }} in the previous {{ p.days }} days</small>{% endif %}
+        </article>
+    </section>
+
+    <!-- Chart + contexts -->
+    <div class="in-main">
+        <section class="mt-card in-chart-card" aria-labelledby="in-chart-title">
+            <div class="mt-section-head">
+                <h2 id="in-chart-title">Mood {{ 'this week' if p.key == '7' else 'over time' }}</h2>
+                <ul class="in-legend" aria-label="Legend">
+                    <li><i class="lg-good"></i>Good / Great</li>
+                    <li><i class="lg-okay"></i>Okay</li>
+                    <li><i class="lg-low"></i>Low / Very Low</li>
+                </ul>
+            </div>
+            {% if view.points_with_data %}
+                <div class="in-chart-wrap">
+                    <canvas id="moodChart" role="img" aria-label="Line chart of your recorded mood. {{ view.chart_summary }}"></canvas>
+                    <p class="in-chart-fallback" hidden>The chart couldn't load. Your moods are listed below.</p>
+                </div>
+                <p class="in-chart-note">
+                    Each point is the mood you selected{% if view.series_unit == 'week' %} (weekly average){% elif view.points_with_data < view.series|length %}; days without a check-in are left empty, not guessed{% endif %}.
+                    {% if view.points_with_data < 4 %}A few more check-ins will make trends easier to see.{% endif %}
+                </p>
+                <details class="in-details">
+                    <summary>Show as a list</summary>
+                    <p>{{ view.chart_summary }}</p>
+                </details>
+            {% else %}
+                <div class="in-chart-empty">
+                    <p>No check-ins {{ p.phrase }}.</p>
+                    {% if p.key != 'all' %}<a class="mt-link" href="{{ url_for('insights.index', range='all') }}">See all time</a>{% endif %}
+                    <a class="mt-link" href="{{ url_for('journal.index') }}">Check in now</a>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="mt-card in-contexts" aria-labelledby="in-contexts-title">
+            <h2 id="in-contexts-title">Your top contexts</h2>
+            {% if view.contexts %}
+                <p class="jr-muted">Contexts you selected, by number of entries {{ p.phrase }}.</p>
+                <ul class="in-bars">
+                    {% for c in view.contexts[:6] %}
+                    <li>
+                        <div class="in-bar-row"><span>{{ c.label }}</span><span>{{ c.count }} {{ 'entry' if c.count == 1 else 'entries' }}</span></div>
+                        <div class="in-bar" role="img" aria-label="{{ c.label }}: {{ c.count }} of {{ view.count }} entries"><span style="width: {{ c.share }}%"></span></div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="jr-muted">You haven't tagged any contexts {{ p.phrase }}. Next time you check in, try picking what was around you (Study, Friends, Sleep…) and they'll show up here.</p>
+                <a class="mt-link" href="{{ url_for('journal.index') }}">Add a check-in {{ render_icon("arrow", 14) }}</a>
+            {% endif %}
+
+            {% if view.themes %}
+            <div class="in-themes">
+                <h3>Detected in your writing</h3>
+                <p class="jr-muted">Found automatically from keywords. Separate from the contexts you chose.</p>
+                <div class="mt-tags">
+                    {% for t in view.themes[:6] %}<span class="mt-tag mt-tag-soft">{{ t.name }} · {{ t.count }}</span>{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
     </div>
 
-    {% if entry_count < 3 %}
-        <div class="card" style="text-align: center; padding: 5rem 2rem; border-style: dashed;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background-color: var(--primary-light); color: var(--text-muted); border-radius: 50%; margin-bottom: 1.5rem;">
-                <i data-lucide="bar-chart-2" style="width: 32px; height: 32px;"></i>
+    <!-- Mood x Context -->
+    {% if view.contexts %}
+    <section class="in-matrix" aria-labelledby="in-matrix-title">
+        <div class="mt-section-head">
+            <div>
+                <h2 id="in-matrix-title">Mood × Context</h2>
+                <p class="jr-muted">How often each context appeared alongside each mood you recorded {{ p.phrase }}. Showing up together isn't the same as causing.</p>
             </div>
-            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Gathering your data</h3>
-            {% if entry_count == 0 %}
-            <p class="text-muted" style="margin-bottom: 2rem; font-size: 1.05rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                Continue journaling and MindTrack will begin identifying recurring patterns to help you understand your mood.
-            </p>
-            {% else %}
-            <p class="text-muted" style="margin-bottom: 2rem; font-size: 1.05rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                {{ 3 - entry_count }} more entries are needed before MindTrack can confidently identify recurring patterns.
-            </p>
-            {% endif %}
-            <a href="{{ url_for('journal.create') }}" class="btn btn-primary">
-                <i data-lucide="pen-tool" style="width: 18px; height: 18px;"></i> Write a Journal Entry
-            </a>
-        </div>
-    {% elif not insights %}
-        <div class="card" style="text-align: center; padding: 5rem 2rem;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background-color: var(--accent-light); color: var(--accent); border-radius: 50%; margin-bottom: 1.5rem;">
-                <i data-lucide="activity" style="width: 32px; height: 32px;"></i>
+            <div class="mt-filter" role="group" aria-label="Filter by recorded mood">
+                <button type="button" data-filter="all" aria-pressed="true">All</button>
+                <button type="button" data-filter="good" aria-pressed="false">Good</button>
+                <button type="button" data-filter="okay" aria-pressed="false">Okay</button>
+                <button type="button" data-filter="low" aria-pressed="false">Low</button>
             </div>
-            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Steady as she goes</h3>
-            <p class="text-muted" style="margin-bottom: 0; font-size: 1.05rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                There wasn't enough variation or repetition in your entries during this period to generate strong insights. Keep journaling!
-            </p>
         </div>
-    {% else %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 2rem; margin-bottom: 4rem;">
-        {% for insight in insights %}
-            <div class="card" style="display: flex; flex-direction: column;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-                    {% if insight.type == 'recurring_theme' %}
-                        <i data-lucide="repeat" style="color: var(--primary); width: 18px; height: 18px;"></i>
-                        <span style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Theme Pattern</span>
-                    {% elif insight.type == 'mood_association' %}
-                        <i data-lucide="link-2" style="color: var(--accent); width: 18px; height: 18px;"></i>
-                        <span style="font-size: 0.8rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Mood Association</span>
-                    {% elif insight.type in ['mood_trend', 'sentiment_trend'] %}
-                        <i data-lucide="trending-up" style="color: #059669; width: 18px; height: 18px;"></i>
-                        <span style="font-size: 0.8rem; color: #059669; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Recent Trend</span>
-                    {% endif %}
+        <div class="in-matrix-grid">
+            {% for c in view.contexts %}
+            <article class="mt-card in-ctx" data-good="{{ c.good }}" data-okay="{{ c.okay }}" data-low="{{ c.low }}">
+                <h3>{{ c.label }} <span>{{ c.count }}</span></h3>
+                {% for group, label, n in [('good', 'Good / Great', c.good), ('okay', 'Okay', c.okay), ('low', 'Low / Very Low', c.low)] %}
+                <div class="in-ctx-row" data-group="{{ group }}">
+                    <span class="in-ctx-label">{{ label }}</span>
+                    <span class="in-dots" aria-hidden="true">{% for _ in range([n, 10]|min) %}<i class="dot-{{ group }}"></i>{% endfor %}{% if n > 10 %}<em>+{{ n - 10 }}</em>{% endif %}</span>
+                    <span class="in-ctx-count">{{ n }}<span class="mt-sr"> {{ 'entry' if n == 1 else 'entries' }}</span></span>
                 </div>
-
-                <h3 style="font-size: 1.5rem; margin-bottom: 1rem; line-height: 1.4; color: var(--primary);">{{ insight.title }}</h3>
-                <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2rem; line-height: 1.6; flex: 1;">{{ insight.description }}</p>
-
-                <details style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden;">
-                    <summary style="cursor: pointer; padding: 1rem; font-weight: 600; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; user-select: none;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <i data-lucide="info" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
-                            Why am I seeing this?
-                        </div>
-                    </summary>
-                    <div style="padding: 0 1.5rem 1.5rem 1.5rem;">
-                        <ul style="margin: 0; padding-left: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                            {% for reason in insight.why %}
-                            <li style="margin-bottom: 0.5rem;">{{ reason }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </details>
-                <style>
-                    details summary::-webkit-details-marker { display: none; }
-                </style>
-            </div>
-        {% endfor %}
+                {% endfor %}
+            </article>
+            {% endfor %}
         </div>
+        <p class="in-matrix-empty jr-muted" hidden role="status"></p>
+    </section>
+    {% endif %}
 
-        <!-- Reflection Hook -->
-        <div class="card" style="text-align: center; padding: 4rem 2rem; background-color: var(--accent-light); border-color: var(--accent-light);">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background-color: var(--surface-color); color: var(--accent); border-radius: 50%; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
-                <i data-lucide="message-circle" style="width: 28px; height: 28px;"></i>
-            </div>
-            <h2 style="margin-bottom: 1rem; font-size: 1.75rem;">Dig deeper into these patterns</h2>
-            <p style="color: var(--text-main); margin-bottom: 2rem; font-size: 1.1rem; max-width: 600px; margin-left: auto; margin-right: auto; opacity: 0.8;">
-                Are any of these insights surprising? Take a moment to write about what might be causing these patterns.
-            </p>
-            <a href="{{ url_for('journal.create', prompt='I noticed a pattern in my insights recently...') }}" class="btn btn-accent btn-lg">
-                <i data-lucide="pen-tool" style="width: 18px; height: 18px;"></i>
-                Reflect on insights
-            </a>
+    <!-- Observations -->
+    <section class="in-observations" aria-labelledby="in-obs-title">
+        <div class="mt-section-head"><h2 id="in-obs-title">You might notice</h2></div>
+        {% if view.enough_data and view.observations %}
+        <div class="in-obs-grid">
+            {% for o in view.observations %}
+            <article class="mt-card in-obs">
+                <h3>{{ render_icon("sparkles", 18) }} {{ o.title }}</h3>
+                <ul>{% for line in o.evidence %}<li>{{ line }}</li>{% endfor %}</ul>
+                <p class="in-obs-note">{{ o.note }}</p>
+            </article>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="mt-card in-obs in-obs-sparse">
+            <h3>Not enough check-ins yet to spot patterns {{ p.phrase }}</h3>
+            <p>You have {{ view.count }} {{ 'check-in' if view.count == 1 else 'check-ins' }} in this period. Observations appear once there are at least 3, so they're based on more than a single moment.{% if p.key != 'all' %} You could also try a longer date range.{% endif %}</p>
+            {% for o in view.observations if o.kind == 'frequency' %}<p class="jr-muted">{{ o.title }}</p>{% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Little things worth keeping -->
+    <section class="mt-card in-keep" aria-labelledby="in-keep-title">
+        <h2 id="in-keep-title">{{ render_icon("sparkles", 18) }} Little things worth keeping</h2>
+        {% if view.suggestions %}
+            <div class="in-keep-grid">
+                {% for sug in view.suggestions %}
+                <article>
+                    <h3>{{ sug.label }}</h3>
+                    <p>{{ sug.text }}</p>
+                    <small>Why you're seeing this: {{ sug.evidence }}</small>
+                </article>
+                {% endfor %}
+            </div>
+            <p class="jr-muted">Only a suggestion. Feel free to ignore it; the same thing can feel good some days and hard on others.</p>
+        {% else %}
+            <p class="jr-prompt">{{ view.general_prompt }}</p>
+            <p class="jr-muted">A general prompt, not based on your data. Once a context shows up alongside good moods a few times, you'll see personal notes here.</p>
+        {% endif %}
+    </section>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if total_entries and view.points_with_data %}
+<script type="application/json" id="mood-series">{{ view.series|tojson }}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/insights.js') }}"></script>
 {% endblock %}

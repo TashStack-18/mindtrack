@@ -28,7 +28,150 @@ def get_or_create_tags(tag_names, user_id):
         tags.append(tag)
     return tags
 
+CHECKIN_TEXT_MAX = 2000
+CHECKIN_NONCE_KEY = 'checkin_nonce'
+RECENT_ENTRY_COUNT = 6
+
+
+def apply_content_analysis(entry, content):
+    """Sentiment + detected themes for an entry's text (shared by create and check-in)."""
+    from app.services.sentiment_service import analyze_text
+    from app.services.theme_service import detect_themes
+    from app.models.theme import DetectedTheme
+    if content:
+        sentiment = analyze_text(content)
+        entry.sentiment_polarity = sentiment['polarity']
+        entry.sentiment_subjectivity = sentiment['subjectivity']
+        entry.sentiment_label = sentiment['label']
+    for theme_name in detect_themes(content):
+        entry.detected_themes.append(DetectedTheme(theme_name=theme_name))
+
+
+def _new_nonce():
+    import secrets
+    from flask import session
+    session[CHECKIN_NONCE_KEY] = secrets.token_urlsafe(16)
+    return session[CHECKIN_NONCE_KEY]
+
+
+def _render_journal_home(form=None, errors=None, status=200):
+    """The Journal page: daily check-in, today's status, recent entries, reflection."""
+    from app.services.encryption_service import decrypt_text
+    from app.services.insight_service import CONTEXT_TAGS, context_label, entry_contexts, general_prompt_for
+    from app.services.reflection_service import prompt_for_entry
+    from app.services.time_service import tz_offset_minutes, local_today, to_local, utc_range_for_local_days
+    from datetime import timedelta
+
+    offset = tz_offset_minutes()
+    today = local_today(offset)
+    recent = (JournalEntry.query.filter_by(user_id=g.user.id)
+              .order_by(JournalEntry.created_at.desc()).limit(RECENT_ENTRY_COUNT).all())
+    total = JournalEntry.query.filter_by(user_id=g.user.id).count()
+
+    cards = []
+    for e in recent:
+        try:
+            text = decrypt_text(e.encrypted_content) or ''
+        except Exception:
+            text = ''
+        local_dt = to_local(e.created_at, offset)
+        cards.append({
+            'entry': e,
+            'when': local_dt,
+            'is_today': local_dt.date() == today,
+            # Short preview only; the full text stays on the entry page.
+            'preview': (text[:140].rstrip() + '…') if len(text) > 140 else text,
+            'contexts': [context_label(c) for c in entry_contexts(e)],
+            'feelings': e.feelings,
+        })
+
+    # This week's check-in days (local Monday to Sunday).
+    week_start = today - timedelta(days=today.weekday())
+    week_from_utc, _ = utc_range_for_local_days(week_start, today, offset)
+    week_entries = JournalEntry.query.filter(JournalEntry.user_id == g.user.id,
+                                             JournalEntry.created_at >= week_from_utc).all()
+    checked_days = {to_local(e.created_at, offset).date() for e in week_entries}
+    week = [{'date': week_start + timedelta(days=i), 'done': (week_start + timedelta(days=i)) in checked_days,
+             'is_today': week_start + timedelta(days=i) == today} for i in range(7)]
+
+    today_cards = [c for c in cards if c['is_today']]
+
+    # Reflection: based on a recent entry with text if there is one, otherwise a general prompt.
+    reflection = {'prompt': general_prompt_for(today), 'entry': None, 'personal': False}
+    latest = recent[0] if recent else None
+    if latest and (today - to_local(latest.created_at, offset).date()).days <= 2 and latest.encrypted_content:
+        reflection = {'prompt': prompt_for_entry(latest), 'entry': latest, 'personal': True}
+
+    return render_template(
+        'journal_home.html',
+        cards=cards, total=total, week=week, today=today, today_cards=today_cards,
+        reflection=reflection, context_tags=[(t, context_label(t)) for t in CONTEXT_TAGS],
+        mood_labels=MOOD_LABELS, form=form or {}, errors=errors or {}, nonce=_new_nonce(),
+        text_max=CHECKIN_TEXT_MAX,
+    ), status
+
+
 @bp.route('/')
+@login_required
+def index():
+    return _render_journal_home()
+
+
+@bp.route('/checkin', methods=('POST',))
+@login_required
+def checkin():
+    from flask import session
+    from app.services.insight_service import CONTEXT_TAGS
+    from app.services.encryption_service import encrypt_text, decrypt_text
+    from app.services.time_service import tz_offset_minutes, to_local
+
+    mood = request.form.get('mood', '')
+    text = request.form.get('note', '').strip()
+    contexts = [c for c in request.form.getlist('contexts') if c in CONTEXT_TAGS]
+    form = {'mood': mood, 'note': text, 'contexts': contexts}
+
+    errors = {}
+    if not mood.isdigit() or int(mood) not in MOOD_LABELS:
+        errors['mood'] = 'Pick the mood that feels closest to right now.'
+    if len(text) > CHECKIN_TEXT_MAX:
+        errors['note'] = f'Please keep this under {CHECKIN_TEXT_MAX} characters (you have {len(text)}).'
+    if errors:
+        return _render_journal_home(form, errors, 400)
+
+    # Duplicate protection: each rendered form has a one-time token.
+    expected = session.pop(CHECKIN_NONCE_KEY, None)
+    if not expected or request.form.get('nonce') != expected:
+        last = JournalEntry.query.filter_by(user_id=g.user.id).order_by(JournalEntry.created_at.desc()).first()
+        if last and (datetime.utcnow() - last.created_at).total_seconds() < 120 and last.mood_score == int(mood):
+            try:
+                same_text = (decrypt_text(last.encrypted_content) or '') == text
+            except Exception:
+                same_text = False
+            if same_text:
+                flash('That check-in was already saved.', 'success')
+                return redirect(url_for('journal.index') + f'#entry-{last.id}')
+        errors['form'] = 'This form was a little out of date. Your answers are still here; press Save again to keep them.'
+        return _render_journal_home(form, errors, 409)
+
+    score = int(mood)
+    local_now = to_local(datetime.utcnow(), tz_offset_minutes())
+    entry = JournalEntry(
+        user_id=g.user.id,
+        title=f"Check-in · {local_now.strftime('%b %d, %I:%M %p').replace(' 0', ' ')}",
+        encrypted_content=encrypt_text(text) if text else '',
+        mood_score=score,
+        mood_label=MOOD_LABELS[score],
+    )
+    entry.tags = get_or_create_tags(contexts, g.user.id)
+    apply_content_analysis(entry, text)
+    db.session.add(entry)
+    db.session.commit()
+
+    flash('Check-in saved. Thanks for showing up for yourself today.', 'success')
+    return redirect(url_for('journal.index') + f'#entry-{entry.id}')
+
+
+@bp.route('/history')
 @login_required
 def history():
     query = JournalEntry.query.filter_by(user_id=g.user.id)
@@ -122,7 +265,8 @@ def create():
             
         flash(error, 'error')
         
-    return render_template('journal_create.html', entry=None, mood_labels=MOOD_LABELS)
+    from app.services.insight_service import CONTEXT_TAGS
+    return render_template('journal_create.html', entry=None, mood_labels=MOOD_LABELS, context_tags=CONTEXT_TAGS)
 
 @bp.route('/<int:id>')
 @login_required
@@ -165,7 +309,7 @@ def edit(id):
         custom_tags = request.form.get('custom_tags', '')
         
         error = None
-        if not content:
+        if not content and decrypted_content:
             error = 'Journal content is required.'
         elif not mood_score or not mood_score.isdigit() or int(mood_score) not in MOOD_LABELS:
             error = 'Valid mood score is required.'
@@ -216,7 +360,8 @@ def edit(id):
             
         flash(error, 'error')
         
-    return render_template('journal_create.html', entry=entry, mood_labels=MOOD_LABELS)
+    from app.services.insight_service import CONTEXT_TAGS
+    return render_template('journal_create.html', entry=entry, mood_labels=MOOD_LABELS, context_tags=CONTEXT_TAGS)
 
 @bp.route('/<int:id>/delete', methods=('POST',))
 @login_required
@@ -232,9 +377,9 @@ def delete(id):
 def reflect(id):
     entry = JournalEntry.query.filter_by(id=id, user_id=g.user.id).first_or_404()
     
-    from app.services.reflection_service import generate_prompt
+    from app.services.reflection_service import prompt_for_entry
     from app.services.encryption_service import decrypt_text, encrypt_text
-    prompt = generate_prompt(entry)
+    prompt = prompt_for_entry(entry)
     
     # Get existing reflection if any
     from app.models.reflection import Reflection

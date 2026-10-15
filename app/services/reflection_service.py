@@ -3,12 +3,17 @@ from app.models.theme import DetectedTheme
 
 ABSOLUTE_WORDS = ["always", "never", "everyone", "nobody", "nothing", "everything"]
 
-def generate_prompt(entry):
+def generate_prompt(entry, text=None):
     """
     Generates a single CBT-inspired reflection prompt based on journal data.
     Uses a deterministic priority system.
+
+    `text` should be the entry's DECRYPTED content. (Scanning
+    entry.encrypted_content directly only sees Fernet ciphertext; it remains
+    the fallback for callers/tests that pass plain objects.)
     """
-    text = entry.encrypted_content or ""
+    if text is None:
+        text = entry.encrypted_content or ""
     if isinstance(text, bytes):
         text = text.decode('utf-8', errors='ignore')
     text_lower = text.lower()
@@ -49,3 +54,13 @@ def generate_prompt(entry):
         
     # 5. Neutral/general reflection
     return "What stands out most to you about this experience?"
+
+
+def prompt_for_entry(entry):
+    """generate_prompt() on the entry's decrypted text (empty if it can't be decrypted)."""
+    from app.services.encryption_service import decrypt_text
+    try:
+        text = decrypt_text(entry.encrypted_content) or ""
+    except Exception:
+        text = ""
+    return generate_prompt(entry, text)
